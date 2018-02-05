@@ -1,0 +1,15 @@
+[package]
+name = "accounting"
+version = "0.1.0"
+authors = ["Alex <busarovalex@yandex.ru>"]
+
+[dependencies]
+futures="*"
+telegram-bot="*"
+tokio-core="*"
+structopt = "0.1.0"
+structopt-derive = "0.1.0"
+chrono = { version = "0.4", features = ["serde", "rustc-serialize"] }
+serde = "1.0"
+serde_derive = "1.0"
+bincode = "0.9.2"
