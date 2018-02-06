@@ -55,7 +55,7 @@ fn start(app: App) -> Result<(), String> {
     }
 
     if app.bot {
-        bot::start(registry)?;
+        bot::BotLauncher::new(registry, 5).start()?;
     }
 
     Ok(())

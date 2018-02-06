@@ -89,7 +89,6 @@ impl EntryDeserializer {
     }
 
     fn next(&mut self) -> Result<Option<Entry>, String> {
-        println!("{} - {}", self.bin.len(), self.total_read);
         if self.bin.len() - self.total_read > 8 {
             let entry_size: u64 = deserialize(&self.bin[self.total_read..self.total_read + 8]).map_err(|e| format!("could not deserialize entry size: {}", e))?;
             let entry: Entry = deserialize(&self.bin[self.total_read + 8..self.total_read + 8 + entry_size as usize]).map_err(|e| format!("could not deserialize entry: {}", e))?;
