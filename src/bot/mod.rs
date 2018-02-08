@@ -9,9 +9,7 @@ use std::str::FromStr;
 use registry::Registry;
 use accounting::Entry;
 
-mod representation;
-
-use self::representation::{EntryRepresentation};
+use accounting::representation::{EntryRepresentation};
 
 fn start(registry: &Registry) -> Result<(), String> {
     let mut core = Core::new().map_err(|e| format!("{:?}", e))?;
@@ -52,7 +50,10 @@ fn start(registry: &Registry) -> Result<(), String> {
 
 fn handle(data: &str, registry: &Registry) -> Result<String, String> {
     match data {
-        "list" | "/list" => {
+        "help" | "Help" | "/help" => {
+            Ok(format!("/list"))
+        },
+        "List" | "list" | "/list" => {
             Ok(registry.list()?.into_iter().map(|e| format!("{}\n", EntryRepresentation::from(e))).collect())                        
         },
         query @ _ => {

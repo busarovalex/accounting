@@ -27,8 +27,6 @@ use accounting::{Entry};
 fn main() {
     let app = App::from_args();
 
-    println!("{:?}", &app);
-
     match start(app) {
         Err(err) => {
             println!("{}", err);
@@ -41,16 +39,16 @@ fn main() {
 fn start(app: App) -> Result<(), String> {
     let registry = Registry::new(app.data)?;
 
-    if let Some(new_entry) = app.entry {
-        let parsed_new_entry = Entry::from_str(&new_entry)?;
-        registry.add_entry(parsed_new_entry)?;
+    if app.list {
+        for entry in registry.list()? {
+            println!("{}", accounting::representation::EntryRepresentation::from(entry));
+        }
         return Ok(());
     }
 
-    if app.list {
-        for entry in registry.list()? {
-            println!("{:?}", entry);
-        }
+    if let Some(new_entry) = app.entry {
+        let parsed_new_entry = Entry::from_str(&new_entry)?;
+        registry.add_entry(parsed_new_entry)?;
         return Ok(());
     }
 
