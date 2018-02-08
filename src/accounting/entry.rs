@@ -4,9 +4,9 @@ use std::str::FromStr;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Entry {
-    product: String,
-    price: i32,
-    time: NaiveDateTime
+    pub product: String,
+    pub price: i32,
+    pub time: NaiveDateTime
 }
 
 impl FromStr for Entry {
