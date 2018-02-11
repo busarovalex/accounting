@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 #[derive(Debug, PartialEq)]
 pub enum Error {
     InvalidCharacter(char),
@@ -105,7 +103,7 @@ fn tokens(input: &str) -> Result<Vec<Token>, Error> {
     let mut token_builder = TokenBuilder::new();
     for ch in input.chars() {
         if let Some(next_token) = match ch {
-            number @ '0'...'9' => token_builder.push_number(i32::from_str(&format!("{}", number)).unwrap())?,
+            number @ '0'...'9' => token_builder.push_number(number.to_digit(10).unwrap() as i32)?,
             '*' => token_builder.push_operation(Operation::Mul),
             '-' => token_builder.push_operation(Operation::Sub),
             '+' => token_builder.push_operation(Operation::Add),

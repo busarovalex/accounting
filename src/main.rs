@@ -6,10 +6,16 @@ extern crate chrono;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde;
+extern crate serde_json;
 extern crate bincode;
 extern crate structopt;
 #[macro_use]
 extern crate structopt_derive;
+#[macro_use]
+extern crate error_chain;
+#[macro_use]
+extern crate log;
+extern crate env_logger;
 
 use structopt::StructOpt;
 
@@ -19,12 +25,16 @@ mod accounting;
 mod app;
 mod registry;
 mod bot;
+mod persistence;
+mod error;
 
 use app::App;
 use registry::Registry;
 use accounting::{Entry};
+use error::Error;
 
 fn main() {
+    env_logger::init();
     let app = App::from_args();
 
     match start(app) {
@@ -36,7 +46,7 @@ fn main() {
     };    
 }
 
-fn start(app: App) -> Result<(), String> {
+fn start(app: App) -> Result<(), Error> {
     let registry = Registry::new(app.data)?;
 
     if app.list {

@@ -8,10 +8,12 @@ use std::str::FromStr;
 
 use registry::Registry;
 use accounting::Entry;
+use error::Error as AppError;
+use error::ErrorKind;
 
 use accounting::representation::{EntryRepresentation};
 
-fn start(registry: &Registry) -> Result<(), String> {
+fn start(registry: &Registry) -> Result<(), AppError> {
     let mut core = Core::new().map_err(|e| format!("{:?}", e))?;
 
     let token = env::var("TELEGRAM_BOT_TOKEN").map_err(|e| format!("{:?}", e))?;
@@ -33,10 +35,8 @@ fn start(registry: &Registry) -> Result<(), String> {
                 
                 match handle(data, &registry) {
                     Ok(msg) => api.spawn(message.text_reply(msg)),
-                    Err(msg) => api.spawn(message.text_reply(msg)),
-                }
-                
-                
+                    Err(msg) => api.spawn(message.text_reply(format!("Error: {}", msg))),
+                }                
             }
         }
 
@@ -48,7 +48,7 @@ fn start(registry: &Registry) -> Result<(), String> {
     Ok(())
 }
 
-fn handle(data: &str, registry: &Registry) -> Result<String, String> {
+fn handle(data: &str, registry: &Registry) -> Result<String, AppError> {
     match data {
         "help" | "Help" | "/help" => {
             Ok(format!("/list"))
@@ -81,7 +81,7 @@ impl BotLauncher {
         }
     }
 
-    pub fn start(&mut self) -> Result<(), String> {
+    pub fn start(&mut self) -> Result<(), AppError> {
         loop {
             let now = ::chrono::offset::Local::now().naive_local();
 
@@ -93,13 +93,15 @@ impl BotLauncher {
             self.number_of_tries += 1;
 
             if self.number_of_tries == self.max_number_of_tries {
-                return Err("number of tries exceeded".to_owned());
+                return Err(ErrorKind::NumberOfLauchesExeeded.into());
             }
 
             match start(&self.registry) {
                 Ok(_) => unreachable!(),
                 Err(msg) => println!("{}", msg)
             }
+
+            ::std::thread::sleep(::std::time::Duration::new(5, 0));
         }
     }
 }
