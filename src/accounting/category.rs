@@ -1,5 +1,3 @@
-use uuid::Uuid;
-
 use super::{UserId};
 
 #[derive(Debug)]
@@ -16,9 +14,5 @@ pub struct Category {
 impl CategoryId {
     pub fn new(value: String) -> Self {
         CategoryId(value)
-    }
-
-    fn generate() -> Self {
-        CategoryId(format!("{}", Uuid::new_v4()))
     }
 }

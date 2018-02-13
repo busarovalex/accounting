@@ -1,10 +1,15 @@
+use serde_yaml;
+
 use std::path::PathBuf;
+use std::io;
 
 use persistence;
 
 error_chain!{
     foreign_links {
+        Io(io::Error) #[doc = "Error during IO"];
         Persistence(persistence::error::Error) #[doc = "Error during persistence"];
+        Yaml(serde_yaml::Error) #[doc = "Error during yamd (de)serialization"];
     }
 
     errors {

@@ -3,11 +3,8 @@ use std::path::PathBuf;
 #[derive(StructOpt, Debug)]
 #[structopt(name = "Accounting", about = "Личный учет финансов")]
 pub struct App {
-    #[structopt(short="d", long="data", help = "data folder", parse(from_os_str))]
-    pub data: PathBuf,
-
-    #[structopt(short="t", long="telegram", help = "telegram user id")]
-    pub telegram_id: Option<i64>,
+    #[structopt(short="c", long="config", help = "path to config", parse(from_os_str))]
+    pub config_path: Option<PathBuf>,
 
     #[structopt(subcommand)]
     pub command: Command

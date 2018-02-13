@@ -15,14 +15,6 @@ pub struct User {
 }
 
 impl User {
-    pub fn new() -> User {
-        User {
-            id: UserId::generate(),
-            telegram_id: None,
-            offset: None
-        }
-    }
-
     pub fn with_telegram_id(telegram_id: TelegramId) -> User {
         User {
             id: UserId::generate(),

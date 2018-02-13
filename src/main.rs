@@ -15,6 +15,7 @@ extern crate error_chain;
 #[macro_use]
 extern crate log;
 extern crate env_logger;
+extern crate serde_yaml;
 
 use structopt::StructOpt;
 
@@ -26,11 +27,13 @@ mod registry;
 mod bot;
 mod persistence;
 mod error;
+mod config;
 
 use app::{App, Command};
 use registry::Registry;
 use accounting::{Entry, Product, TelegramId};
 use error::{Error, ErrorKind};
+// use config::Config;
 
 fn main() {
     env_logger::init();
@@ -48,13 +51,13 @@ fn main() {
 }
 
 fn start(app: App) -> Result<(), Error> {
-    let registry = Registry::new(app.data)?;
+    let config = config::config(&app)?;
+    info!("config: {:?}", &config);
+    let registry = Registry::new(config.data_path.clone().into())?;
 
     match app.command {
         Command::Add{ input } => {
-            let err: Error = ErrorKind::IncorrectApplicationUse("не указан telegram id".into()).into();
-            let user_telegram_id: i64 = app.telegram_id.ok_or(err)?;
-            let user = registry.find_or_create(TelegramId(user_telegram_id))?;
+            let user = registry.find_or_create(TelegramId(config.telegram_user_id))?;
             let new_entry: String = input.into_iter().collect();
             let parsed_new_product = Product::from_str(&new_entry)?;
             let new_entry = Entry::new(user.id, parsed_new_product);
@@ -66,7 +69,7 @@ fn start(app: App) -> Result<(), Error> {
             }
         },
         Command::Bot{} => {
-            bot::BotLauncher::new(registry, 5).start()?;
+            bot::BotLauncher::new(registry, config).start()?;
         },
         Command::Migrate{ add, remove } => {
             match (add.is_empty(), remove) {
@@ -105,4 +108,3 @@ fn start(app: App) -> Result<(), Error> {
 
     Ok(())
 }
-
