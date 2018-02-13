@@ -18,19 +18,16 @@ fn start(registry: &Registry) -> Result<(), AppError> {
 
     let token = env::var("TELEGRAM_BOT_TOKEN").map_err(|e| format!("{:?}", e))?;
     let api = Api::configure(token).build(core.handle()).map_err(|e| format!("{:?}", e))?;
-
-    // Fetch new updates via long poll method
+    
     let future = api.stream().for_each(|update| {
 
-        // If the received update contains a new message...
         if let UpdateKind::Message(message) = update.kind {
             if message.from.id != UserId::new(221296637) {
                 return Ok(());
             }
             if let MessageKind::Text {ref data, ..} = message.kind {
-                // Print received text message to stdout.
-                println!("{:?}", &message);
-                println!("<{}>: {}", &message.from.first_name, data);
+                debug!("{:?}", &message);
+                debug!("<{}>: {}", &message.from.first_name, data);
 
                 
                 match handle(data, &registry) {

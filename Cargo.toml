@@ -7,8 +7,7 @@ authors = ["Alex <busarovalex@yandex.ru>"]
 futures="*"
 telegram-bot="*"
 tokio-core="*"
-structopt = "0.1.0"
-structopt-derive = "0.1.0"
+structopt = "0.2.0"
 chrono = { version = "0.4", features = ["serde", "rustc-serialize"] }
 serde = "1.0"
 serde_derive = "1.0"

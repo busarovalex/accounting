@@ -19,5 +19,20 @@ error_chain!{
             description("An IO error occurred during persistense")
             display("An IO error occurred during persistense")   
         }
+
+        JsonValueIsNotObject {
+            description("An IO error occurred during persistense")
+            display("deserialized json value appears to be not an object")
+        }
+
+        NoSuchKeyInJsonValue {
+            description("An IO error occurred during persistense")
+            display("no such key found in json object")
+        }
+
+        KeyWasAlreadyInObject {
+            description("An IO error occurred during persistense")
+            display("key was already found in json object")
+        }
     }
 }

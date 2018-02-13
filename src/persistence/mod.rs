@@ -8,7 +8,9 @@ use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
 
 pub mod error;
+mod migrate;
 
+pub use self::migrate::{Migration};
 use self::error::{Error, ErrorKind};
 
 #[derive(Debug)]
@@ -84,9 +86,12 @@ impl<T: Serialize + DeserializeOwned> Table<T> {
         Ok(())
     }
 
+    pub fn migrate(&self, migration: Migration) -> Result<(), Error> {
+        migrate::migrate(self.table_path(), migration)
+    }
+
     fn file_read(&self) -> Result<File, Error> {
-        let mut full_path = self.base_path.clone();
-        full_path.push(format!("{}.table", &self.name));
+        let full_path = self.table_path();
         
         let file = OpenOptions::new()
             .read(true)
@@ -96,13 +101,18 @@ impl<T: Serialize + DeserializeOwned> Table<T> {
     }
 
     fn file_append(&self) -> Result<File, Error> {
-        let mut full_path = self.base_path.clone();
-        full_path.push(format!("{}.table", &self.name));
+        let full_path = self.table_path();
         
         let file = OpenOptions::new()
             .append(true)
             .open(full_path)?;     
 
         Ok(file)
+    }
+
+    fn table_path(&self) -> PathBuf {
+        let mut full_path = self.base_path.clone();
+        full_path.push(format!("{}.table", &self.name));
+        full_path
     }
 }

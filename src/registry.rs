@@ -5,8 +5,7 @@ use std::path::PathBuf;
 
 use accounting::{Entry};
 use error::{Error, ErrorKind};
-use persistence::Table;
-
+use persistence::{Migration, Table};
 
 #[derive(Debug)]
 pub struct Registry {
@@ -36,6 +35,11 @@ impl Registry {
     pub fn list(&self) -> Result<Vec<Entry>, Error> {
         let entries = self.entries.select()?;
         Ok(entries)
+    }
+
+    pub fn migrate_entries(&self, migration: Migration) -> Result<(), Error> {
+        self.entries.migrate(migration)?;
+        Ok(())
     }
 }
 

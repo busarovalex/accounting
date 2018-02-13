@@ -16,5 +16,9 @@ error_chain!{
             description("could not start bot after number of launches")
             display("could not start bot after number of launches")
         }
+        IncorrectApplicationUse(cause: String) {
+            description("incorrect use of application")
+            display("incorrect use of application: {}", &cause)   
+        }
     }
 }
