@@ -6,6 +6,7 @@ use std::marker::PhantomData;
 use std::fs;
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
+use std::fmt::Debug;
 
 pub mod error;
 mod migrate;
@@ -14,7 +15,7 @@ pub use self::migrate::{Migration};
 use self::error::{Error, ErrorKind};
 
 #[derive(Debug)]
-pub struct Table<T: Serialize + DeserializeOwned> {
+pub struct Table<T: Serialize + DeserializeOwned + Debug> {
     name: String,
     base_path: PathBuf,
     p_: PhantomData<T>
@@ -27,12 +28,12 @@ pub fn exist_with_name<P: Into<PathBuf>, S: Into<String>>(path: P, name: S) -> b
     full_path.is_file()
 }
 
-impl<T: Serialize + DeserializeOwned> Table<T> {
+impl<T: Serialize + DeserializeOwned + Debug> Table<T> {
     pub fn create<P: Into<PathBuf>, S: Into<String>>(path: P, name: S) -> Result<Table<T>, Error> {
-        info!("creating new table");
         let base_path = path.into();
-        let mut full_path = base_path.clone();
         let name = name.into();
+        info!("creating new table \"{}\" at {:?}", &name, &base_path);
+        let mut full_path = base_path.clone();
         let full_name = format!("{}.table", &name);
         full_path.push(full_name);
 
@@ -56,10 +57,12 @@ impl<T: Serialize + DeserializeOwned> Table<T> {
     }
 
     pub fn load<P: Into<PathBuf>, S: Into<String>>(path: P, name: S) -> Result<Table<T>, Error> {
-        info!("loading existing table");
+        let base_path = path.into();
+        let name = name.into();
+        info!("loading existing table \"{}\" at {:?}", &name, &base_path);
         Ok(Table{
-            name: name.into(),
-            base_path: path.into(),
+            name: name,
+            base_path,
             p_: PhantomData
         })
     }
@@ -78,7 +81,7 @@ impl<T: Serialize + DeserializeOwned> Table<T> {
     }
 
     pub fn insert(&self, value: &T) -> Result<(), Error> {
-        debug!("inserting data");
+        debug!("inserting data {:?}", value);
         let mut file = self.file_append()?;
         let json_serialized = ::serde_json::to_string(value)?;
         file.write_all(json_serialized.as_bytes())?;

@@ -6,6 +6,9 @@ pub struct App {
     #[structopt(short="d", long="data", help = "data folder", parse(from_os_str))]
     pub data: PathBuf,
 
+    #[structopt(short="t", long="telegram", help = "telegram user id")]
+    pub telegram_id: Option<i64>,
+
     #[structopt(subcommand)]
     pub command: Command
 }
@@ -35,5 +38,13 @@ pub enum Command {
         add: Vec<String>,
         #[structopt(short = "r")]
         remove: Option<String>
+    },
+
+    #[structopt(name = "user")]
+    User {
+        #[structopt(short="l", long="list")]
+        list: bool,
+        #[structopt(short="t", long="with-telegram-id")]
+        telegram_id: Option<i64>
     }
 }

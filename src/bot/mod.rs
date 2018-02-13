@@ -7,7 +7,8 @@ use std::env;
 use std::str::FromStr;
 
 use registry::Registry;
-use accounting::Entry;
+use accounting::{Entry, Product, TelegramId};
+use accounting::UserId as AccountingUserId;
 use error::Error as AppError;
 use error::ErrorKind;
 
@@ -26,11 +27,12 @@ fn start(registry: &Registry) -> Result<(), AppError> {
                 return Ok(());
             }
             if let MessageKind::Text {ref data, ..} = message.kind {
-                debug!("{:?}", &message);
-                debug!("<{}>: {}", &message.from.first_name, data);
+                trace!("{:?}", &message);
+                trace!("<{}>: {}", &message.from.first_name, data);
 
+                let user = registry.find_or_create(TelegramId(i64::from(message.from.id))).map_err(|e| format!("{:?}", e))?;
                 
-                match handle(data, &registry) {
+                match handle(data, &registry, user.id) {
                     Ok(msg) => api.spawn(message.text_reply(msg)),
                     Err(msg) => api.spawn(message.text_reply(format!("Error: {}", msg))),
                 }                
@@ -45,7 +47,7 @@ fn start(registry: &Registry) -> Result<(), AppError> {
     Ok(())
 }
 
-fn handle(data: &str, registry: &Registry) -> Result<String, AppError> {
+fn handle(data: &str, registry: &Registry, user: AccountingUserId) -> Result<String, AppError> {
     match data {
         "help" | "Help" | "/help" => {
             Ok(format!("/list"))
@@ -54,8 +56,9 @@ fn handle(data: &str, registry: &Registry) -> Result<String, AppError> {
             Ok(registry.list()?.into_iter().map(|e| format!("{}\n", EntryRepresentation::from(e))).collect())                        
         },
         query @ _ => {
-            let parsed_new_entry = Entry::from_str(&query)?;
-            registry.add_entry(parsed_new_entry)?;
+            let parsed_new_product = Product::from_str(&query)?;
+            let new_entry = Entry::new(user, parsed_new_product);
+            registry.add_entry(new_entry)?;
             Ok(format!("Ok"))
         }
     }
@@ -95,7 +98,7 @@ impl BotLauncher {
 
             match start(&self.registry) {
                 Ok(_) => unreachable!(),
-                Err(msg) => println!("{}", msg)
+                Err(msg) => warn!("{}", msg)
             }
 
             ::std::thread::sleep(::std::time::Duration::new(5, 0));

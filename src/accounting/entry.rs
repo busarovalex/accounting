@@ -1,30 +1,64 @@
+use uuid::Uuid;
 use chrono::prelude::*;
 
 use std::str::FromStr;
 
 use super::evaluation::evaluate;
+use super::{UserId, Tags};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug)]
 pub struct Entry {
-    pub product: String,
-    pub price: i32,
-    pub time: NaiveDateTime
+    pub id: EntryId,
+    pub user_id: UserId,
+    pub product: Product,
+    pub time: NaiveDateTime,
+    pub tags: Tags
 }
 
-impl FromStr for Entry {
+#[derive(Debug)]
+pub struct Product {
+    pub name: String,
+    pub price: i32
+}
+
+#[derive(Debug)]
+pub struct EntryId(pub String);
+
+impl Entry {
+    pub fn new(user_id: UserId, product: Product) -> Entry {
+        Entry {
+            id: EntryId::generate(),
+            user_id,
+            product,
+            time: ::chrono::offset::Local::now().naive_local(),
+            tags: Tags::empty()
+        }
+    }
+}
+
+impl EntryId {
+    pub fn new(value: String) -> Self {
+        EntryId(value)
+    }
+
+    fn generate() -> Self {
+        EntryId(format!("{}", Uuid::new_v4()))
+    }
+}
+
+impl FromStr for Product {
     type Err = String;
     fn from_str(raw: &str) -> Result<Self, Self::Err> {
-        let (price, product) = price_product(raw)?;
+        let (price, name) = price_name(raw)?;
 
-        Ok(Entry{
-            product: product.to_owned(),
-            price: evaluate(price).map_err(|e| format!("{:?}", e))?,
-            time: ::chrono::offset::Local::now().naive_local()
+        Ok(Product{
+            name: name.to_owned(),
+            price: evaluate(price).map_err(|e| format!("{:?}", e))?
         })
     }
 }
 
-fn price_product(raw: &str) -> Result<(&str, &str), String> {
+fn price_name(raw: &str) -> Result<(&str, &str), String> {
     let raw = raw.trim();
     let mut price_first = None;
     let mut split_index = 0;
@@ -49,17 +83,17 @@ fn price_product(raw: &str) -> Result<(&str, &str), String> {
         }
     }
 
-    let (price, product) = match price_first {
+    let (price, name) = match price_first {
         None => return Err("В строке должны быть указаны продукт и цена".to_owned()),
         Some(true) => raw.split_at(split_index),
-        Some(false) => { let (product, price) = raw.split_at(split_index); (price, product)}
+        Some(false) => { let (name, price) = raw.split_at(split_index); (price, name)}
     };
 
-    if product.is_empty() {
+    if name.is_empty() {
         return Err("В строке должны быть указаны продукт и цена".to_owned());
     }
 
-    Ok((price, product))
+    Ok((price, name))
 }
 
 #[cfg(test)]
@@ -68,6 +102,6 @@ mod tests {
 
     #[test]
     fn correctly_splits() {
-        assert_eq!(price_product("чай 75"), Ok((" 75", "чай")));
+        assert_eq!(price_name("чай 75"), Ok((" 75", "чай")));
     }
 }

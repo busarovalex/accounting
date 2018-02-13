@@ -1,3 +1,4 @@
+extern crate uuid;
 extern crate futures;
 extern crate telegram_bot;
 extern crate tokio_core;
@@ -28,7 +29,7 @@ mod error;
 
 use app::{App, Command};
 use registry::Registry;
-use accounting::{Entry};
+use accounting::{Entry, Product, TelegramId};
 use error::{Error, ErrorKind};
 
 fn main() {
@@ -51,9 +52,13 @@ fn start(app: App) -> Result<(), Error> {
 
     match app.command {
         Command::Add{ input } => {
+            let err: Error = ErrorKind::IncorrectApplicationUse("не указан telegram id".into()).into();
+            let user_telegram_id: i64 = app.telegram_id.ok_or(err)?;
+            let user = registry.find_or_create(TelegramId(user_telegram_id))?;
             let new_entry: String = input.into_iter().collect();
-            let parsed_new_entry = Entry::from_str(&new_entry)?;
-            registry.add_entry(parsed_new_entry)?;
+            let parsed_new_product = Product::from_str(&new_entry)?;
+            let new_entry = Entry::new(user.id, parsed_new_product);
+            registry.add_entry(new_entry)?;
         },
         Command::List{} => {
             for entry in registry.list()? {
@@ -80,6 +85,20 @@ fn start(app: App) -> Result<(), Error> {
                         registry.migrate_entries(::persistence::Migration::add_from_str(field_name, &value)?)?;
                     }
                 }
+            }
+        },
+        Command::User{list, telegram_id} => {
+            match (list, telegram_id) {
+                (false, Some(user_telegram_id)) => {
+                    let user = registry.find_or_create(TelegramId(user_telegram_id))?;
+                    println!("{:?}", user);
+                },
+                (true, None) => {
+                    for user in registry.list_users()? {
+                        println!("{:?}", user);
+                    }
+                },
+                _ => return Err(ErrorKind::IncorrectApplicationUse("Неверное использование".into()).into())
             }
         }
     }
