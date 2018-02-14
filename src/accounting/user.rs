@@ -1,7 +1,7 @@
 use chrono::naive::NaiveDateTime;
 use uuid::Uuid;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct UserId(pub String);
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]

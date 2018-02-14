@@ -23,5 +23,9 @@ error_chain!{
             description("could not start bot after number of launches")
             display("could not start bot after number of launches")
         }
+        ProductAlreadyHasCategory(product: String, category: String) {
+            description("product already has a category")
+            display("product \"{}\" already has a category:\"{}\"", product, category)   
+        }
     }
 }

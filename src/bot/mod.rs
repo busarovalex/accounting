@@ -100,7 +100,7 @@ fn handle(data: &str, registry: &Registry, user: AccountingUserId) -> Result<Str
             Ok(format!("/list"))
         },
         "List" | "list" | "/list" => {
-            Ok(registry.list()?.into_iter().map(|e| format!("{}\n", EntryRepresentation::from(e))).collect())                        
+            Ok(registry.list(user)?.into_iter().map(|e| format!("{}\n", EntryRepresentation::from(e))).collect())                        
         },
         query @ _ => {
             let parsed_new_product = Product::from_str(&query)?;

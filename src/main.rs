@@ -26,7 +26,7 @@ mod persistence;
 mod error;
 mod config;
 
-use app::{App, Command, EntryCmd, MigrateCmd, UserCmd};
+use app::{App, Command, EntryCmd, MigrateCmd, UserCmd, CategoryCmd};
 use registry::Registry;
 use accounting::{Entry, Product, TelegramId};
 use error::{Error};
@@ -60,7 +60,8 @@ fn start(app: App) -> Result<(), Error> {
 
     match app.command {
         Command::Entry(EntryCmd::List) => {
-            for entry in registry.list()? {
+            let user = registry.find_or_create(TelegramId(config.telegram_user_id))?;
+            for entry in registry.list(user.id)? {
                 println!("{}", accounting::representation::EntryRepresentation::from(entry));
             }
         },
@@ -87,6 +88,16 @@ fn start(app: App) -> Result<(), Error> {
         Command::User(UserCmd::Add(user_telegram_id)) => {
             let user = registry.find_or_create(TelegramId(user_telegram_id))?;
             println!("{:?}", user);
+        },
+        Command::Category(CategoryCmd::List) => {
+            let user = registry.find_or_create(TelegramId(config.telegram_user_id))?;
+            for category in registry.categories(user.id)? {
+                println!("{:?}", category);
+            }
+        },
+        Command::Category(CategoryCmd::Add(product_name, category_name)) => {
+            let user = registry.find_or_create(TelegramId(config.telegram_user_id))?;
+            registry.add_category(user.id, product_name, category_name)?;
         }
     }
 

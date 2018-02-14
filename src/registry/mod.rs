@@ -4,7 +4,7 @@ use serde::de::DeserializeOwned;
 use std::path::PathBuf;
 use std::fmt::Debug;
 
-use accounting::{Entry, TelegramId, User};
+use accounting::{Entry, TelegramId, User, UserId, Category};
 use error::{Error, ErrorKind};
 use persistence::{Migration, Table};
 
@@ -60,10 +60,11 @@ impl Registry {
         Ok(())
     }
 
-    pub fn list(&self) -> Result<Vec<Entry>, Error> {
+    pub fn list(&self, user: UserId) -> Result<Vec<Entry>, Error> {
         let entries = self.entries.select()?
             .into_iter()
-            .map(RawEntry::into)
+            .map(|raw| {let e: Entry = raw.into(); e})
+            .filter(|e| e.user_id == user)
             .collect();
         Ok(entries)
     }
@@ -78,6 +79,27 @@ impl Registry {
 
     pub fn migrate_entries(&self, migration: Migration) -> Result<(), Error> {
         self.entries.migrate(migration)?;
+        Ok(())
+    }
+
+    pub fn categories(&self, user: UserId) -> Result<Vec<Category>, Error> {
+        let categories = self.categories.select()?
+            .into_iter()
+            .map(|raw| {let c: Category = raw.into(); c})
+            .filter(|c| c.user_id == user)
+            .collect();
+        Ok(categories)
+    }
+
+    pub fn add_category(&self, user: UserId, product_name: String, category_name: String) -> Result<(), Error> {
+        let existing = self.categories(user.clone())?;
+        if let Some(existing) = existing.iter()
+            .filter(|c| c.product == product_name)
+            .next() {
+            return Err(ErrorKind::ProductAlreadyHasCategory(existing.product.to_owned(), existing.category.to_owned()).into());        
+        }  
+        let new_category = Category::new(user, product_name, category_name);
+        self.categories.insert(&RawCategory::from(new_category))?;      
         Ok(())
     }
 }

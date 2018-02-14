@@ -17,7 +17,8 @@ pub enum Command {
     Entry(EntryCmd),
     Bot,
     Migrate(MigrateCmd),
-    User(UserCmd)
+    User(UserCmd),
+    Category(CategoryCmd)
 }
 
 #[derive(Debug)]
@@ -36,6 +37,12 @@ pub enum MigrateCmd {
 pub enum UserCmd {
     List,
     Add(i64)
+}
+
+#[derive(Debug)]
+pub enum CategoryCmd {
+    List,
+    Add(String, String)
 }
 
 impl App {
@@ -57,12 +64,14 @@ impl App {
                     .value_name("INPUT")
                     .takes_value(true)
                     .conflicts_with("list")
+                    .required_unless_one(&["list"])
                 )
                 .arg(Arg::with_name("list")
                     .short("l")
                     .long("list")
                     .help("lists all entries")
                     .conflicts_with("add")
+                    .required_unless_one(&["add"])
                 )
             )
             .subcommand(SubCommand::with_name("bot")
@@ -78,6 +87,7 @@ impl App {
                     .number_of_values(2)
                     .takes_value(true)
                     .conflicts_with("remove")
+                    .required_unless_one(&["remove"])
                 )
                 .arg(Arg::with_name("remove")
                     .short("r")
@@ -86,6 +96,7 @@ impl App {
                     .value_name("FIELD_NAME")
                     .takes_value(true)
                     .conflicts_with("add")
+                    .required_unless_one(&["add"])
                 )
             )
             .subcommand(SubCommand::with_name("user")
@@ -95,6 +106,7 @@ impl App {
                     .long("list")
                     .help("lists all users")
                     .conflicts_with("add")
+                    .required_unless_one(&["add"])
                 )
                 .arg(Arg::with_name("add")
                     .short("a")
@@ -103,6 +115,27 @@ impl App {
                     .value_name("TELEGRAM_ID")
                     .takes_value(true)
                     .conflicts_with("list")
+                    .required_unless_one(&["list"])
+                )
+            )
+            .subcommand(SubCommand::with_name("category")
+                .about("controls categories")
+                .arg(Arg::with_name("list")
+                    .short("l")
+                    .long("list")
+                    .help("lists all categories")
+                    .conflicts_with("add")
+                    .required_unless_one(&["add"])
+                )
+                .arg(Arg::with_name("add")
+                    .short("a")
+                    .long("add")
+                    .help("adds new product-category assosiation")
+                    .value_names(&["PRODUCT_NAME", "CATEGORY_NAME"])
+                    .number_of_values(2)
+                    .takes_value(true)
+                    .conflicts_with("list")
+                    .required_unless_one(&["list"])
                 )
             )
         .get_matches();
@@ -118,6 +151,8 @@ impl App {
                 Command::Migrate(migrate(migrate_matches))
             } else if let Some(user_matches) = matches.subcommand_matches("user") {
                 Command::User(user(user_matches)?)
+            } else if let Some(category_matches) = matches.subcommand_matches("category") {
+                Command::Category(category(category_matches))
             } else {
                 unreachable!()
             }
@@ -155,6 +190,16 @@ fn user(matches: &ArgMatches) -> Result<UserCmd, Error> {
         Ok(UserCmd::Add(i64::from_str(telegram_id)?))
     } else if matches.is_present("list") {
         Ok(UserCmd::List)
+    } else {
+        unreachable!()
+    }
+}
+
+fn category(matches: &ArgMatches) -> CategoryCmd {
+    if let Some(mut add_input) = matches.values_of("add") {
+        CategoryCmd::Add(add_input.next().unwrap().to_owned(), add_input.next().unwrap().to_owned())
+    } else if matches.is_present("list") {
+        CategoryCmd::List
     } else {
         unreachable!()
     }
