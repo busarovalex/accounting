@@ -8,16 +8,13 @@ extern crate serde_derive;
 extern crate serde;
 extern crate serde_json;
 extern crate bincode;
-#[macro_use]
-extern crate structopt;
+extern crate clap;
 #[macro_use]
 extern crate error_chain;
 #[macro_use]
 extern crate log;
 extern crate env_logger;
 extern crate serde_yaml;
-
-use structopt::StructOpt;
 
 use std::str::FromStr;
 
@@ -29,15 +26,21 @@ mod persistence;
 mod error;
 mod config;
 
-use app::{App, Command};
+use app::{App, Command, EntryCmd, MigrateCmd, UserCmd};
 use registry::Registry;
 use accounting::{Entry, Product, TelegramId};
-use error::{Error, ErrorKind};
-// use config::Config;
+use error::{Error};
 
 fn main() {
     env_logger::init();
-    let app = App::from_args();
+    let app = match App::from_args() {
+        Ok(app) => app,
+        Err(err) => {
+            error!("{}", err);
+            println!("{}", err);
+            ::std::process::exit(1);
+        }
+    };
     info!("{:?}", &app);
 
     match start(app) {
@@ -56,53 +59,34 @@ fn start(app: App) -> Result<(), Error> {
     let registry = Registry::new(config.data_path.clone().into())?;
 
     match app.command {
-        Command::Add{ input } => {
-            let user = registry.find_or_create(TelegramId(config.telegram_user_id))?;
-            let new_entry: String = input.into_iter().collect();
-            let parsed_new_product = Product::from_str(&new_entry)?;
-            let new_entry = Entry::new(user.id, parsed_new_product);
-            registry.add_entry(new_entry)?;
-        },
-        Command::List{} => {
+        Command::Entry(EntryCmd::List) => {
             for entry in registry.list()? {
                 println!("{}", accounting::representation::EntryRepresentation::from(entry));
             }
         },
-        Command::Bot{} => {
+        Command::Entry(EntryCmd::Add(new_entry)) => {
+            let user = registry.find_or_create(TelegramId(config.telegram_user_id))?;
+            let parsed_new_product = Product::from_str(&new_entry)?;
+            let new_entry = Entry::new(user.id, parsed_new_product);
+            registry.add_entry(new_entry)?;
+        },
+        Command::Bot => {
             bot::BotLauncher::new(registry, config).start()?;
         },
-        Command::Migrate{ add, remove } => {
-            match (add.is_empty(), remove) {
-                (true, None) | (false, Some(_)) => {
-                    return Err(ErrorKind::IncorrectApplicationUse("не указана миграция".into()).into());
-                },
-                (true, Some(field_name)) => {
-                    registry.migrate_entries(::persistence::Migration::remove(field_name))?;
-                },
-                (false, None) => {
-                    let mut arg_iter = add.into_iter();
-                    if let (Some(field_name), Some(value)) = (arg_iter.next(), arg_iter.next()) {
-                        if arg_iter.next().is_some() {
-                            return Err(ErrorKind::IncorrectApplicationUse("должно быть два операнда".into()).into());
-                        }
-                        registry.migrate_entries(::persistence::Migration::add_from_str(field_name, &value)?)?;
-                    }
-                }
+        Command::Migrate(MigrateCmd::Add(field_name, value)) => {
+            registry.migrate_entries(::persistence::Migration::add_from_str(field_name, &value)?)?;
+        },
+        Command::Migrate(MigrateCmd::Remove(field_name)) => {
+            registry.migrate_entries(::persistence::Migration::remove(field_name))?;
+        },
+        Command::User(UserCmd::List) => {
+            for user in registry.list_users()? {
+                println!("{:?}", user);
             }
         },
-        Command::User{list, telegram_id} => {
-            match (list, telegram_id) {
-                (false, Some(user_telegram_id)) => {
-                    let user = registry.find_or_create(TelegramId(user_telegram_id))?;
-                    println!("{:?}", user);
-                },
-                (true, None) => {
-                    for user in registry.list_users()? {
-                        println!("{:?}", user);
-                    }
-                },
-                _ => return Err(ErrorKind::IncorrectApplicationUse("Неверное использование".into()).into())
-            }
+        Command::User(UserCmd::Add(user_telegram_id)) => {
+            let user = registry.find_or_create(TelegramId(user_telegram_id))?;
+            println!("{:?}", user);
         }
     }
 

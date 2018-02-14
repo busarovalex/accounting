@@ -2,6 +2,7 @@ use serde_yaml;
 
 use std::path::PathBuf;
 use std::io;
+use std::num::ParseIntError;
 
 use persistence;
 
@@ -10,6 +11,7 @@ error_chain!{
         Io(io::Error) #[doc = "Error during IO"];
         Persistence(persistence::error::Error) #[doc = "Error during persistence"];
         Yaml(serde_yaml::Error) #[doc = "Error during yamd (de)serialization"];
+        ParseIntError(ParseIntError) #[doc = "Error during parsing"];
     }
 
     errors {
@@ -20,10 +22,6 @@ error_chain!{
         NumberOfLauchesExeeded {
             description("could not start bot after number of launches")
             display("could not start bot after number of launches")
-        }
-        IncorrectApplicationUse(cause: String) {
-            description("incorrect use of application")
-            display("incorrect use of application: {}", &cause)   
         }
     }
 }

@@ -7,7 +7,6 @@ authors = ["Alex <busarovalex@yandex.ru>"]
 futures="*"
 telegram-bot="*"
 tokio-core="*"
-structopt = "0.2.0"
 chrono = { version = "0.4", features = ["serde", "rustc-serialize"] }
 serde = "1.0"
 serde_derive = "1.0"
@@ -18,3 +17,4 @@ env_logger = "0.5.3"
 log = "0.4.0"
 uuid = { version = "0.5", features = ["v4"] }
 serde_yaml = "0.7"
+clap = "2.30.0"
