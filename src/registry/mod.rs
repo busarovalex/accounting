@@ -23,6 +23,7 @@ pub struct Registry {
 
 impl Registry {
     pub fn new(path: PathBuf) -> Result<Registry, Error> {
+        debug!("creating registry at {:?}", &path);
         if !path.is_dir() {
             return Err(ErrorKind::InvalidRegistryPath(path).into());
         }
@@ -40,6 +41,7 @@ impl Registry {
     }
 
     pub fn find_or_create(&self, telegram_id: TelegramId) -> Result<User, Error> {
+        debug!("finding or creating user with {:?}", &telegram_id);
         let users: Vec<User> = self.users.select()?
             .into_iter()
             .map(|raw| {let user: User = raw.into(); user })
@@ -57,11 +59,13 @@ impl Registry {
     }
 
     pub fn add_entry(&self, entry: Entry) -> Result<(), Error> {
+        debug!("adding entry {:?}", &entry);
         self.entries.insert(&RawEntry::from(entry))?;
         Ok(())
     }
 
     pub fn list(&self, user: UserId) -> Result<Vec<Entry>, Error> {
+        debug!("listing entries for {:?}", &user);
         let entries = self.entries.select()?
             .into_iter()
             .map(|raw| {let e: Entry = raw.into(); e})
@@ -71,6 +75,7 @@ impl Registry {
     }
 
     pub fn list_users(&self) -> Result<Vec<User>, Error> {
+        debug!("listing users");
         let users = self.users.select()?
             .into_iter()
             .map(RawUser::into)
@@ -85,6 +90,7 @@ impl Registry {
     }
 
     pub fn categories(&self, user: UserId) -> Result<Vec<Category>, Error> {
+        debug!("listing categories for {:?}", &user);
         let categories = self.categories.select()?
             .into_iter()
             .map(|raw| {let c: Category = raw.into(); c})
@@ -94,6 +100,7 @@ impl Registry {
     }
 
     pub fn add_category(&self, user: UserId, product_name: String, category_name: String) -> Result<(), Error> {
+        debug!("adding categories for {:?}: {} - {}", &user, &product_name, &category_name);
         let existing = self.categories(user.clone())?;
         if let Some(existing) = existing.iter()
             .filter(|c| c.product == product_name)
@@ -106,6 +113,7 @@ impl Registry {
     }
 
     pub fn statistics(&self, user: UserId) -> Result<Statistics, Error> {
+        debug!("getting statistics for {:?}", &user);
         let entries = self.list(user.clone())?;
         let categiries = self.categories(user.clone())?;
         Ok(Statistics::new(entries, categiries))
