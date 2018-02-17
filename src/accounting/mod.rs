@@ -1,4 +1,4 @@
-pub mod representation;
+pub mod statistics;
 
 pub use self::entry::{EntryId, Entry, Product};
 pub use self::user::{UserId, TelegramId, User};

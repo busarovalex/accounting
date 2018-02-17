@@ -25,6 +25,7 @@ mod bot;
 mod persistence;
 mod error;
 mod config;
+mod representation;
 
 use app::{App, Command, EntryCmd, MigrateCmd, UserCmd, CategoryCmd};
 use registry::Registry;
@@ -62,7 +63,7 @@ fn start(app: App) -> Result<(), Error> {
         Command::Entry(EntryCmd::List) => {
             let user = registry.find_or_create(TelegramId(config.telegram_user_id))?;
             for entry in registry.list(user.id)? {
-                println!("{}", accounting::representation::EntryRepresentation::from(entry));
+                println!("{}", representation::EntryRepresentation::from(entry));
             }
         },
         Command::Entry(EntryCmd::Add(new_entry)) => {
@@ -98,6 +99,12 @@ fn start(app: App) -> Result<(), Error> {
         Command::Category(CategoryCmd::Add(product_name, category_name)) => {
             let user = registry.find_or_create(TelegramId(config.telegram_user_id))?;
             registry.add_category(user.id, product_name, category_name)?;
+        },
+        Command::Report(time_period) => {
+            let user = registry.find_or_create(TelegramId(config.telegram_user_id))?;
+            let stats = registry.statistics(user.id)?;
+            let report = stats.report(time_period)?;
+            println!("{}", representation::ReportRepresentation::from(report));
         }
     }
 

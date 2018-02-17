@@ -13,7 +13,7 @@ use error::Error as AppError;
 use error::ErrorKind;
 use config::Config;
 
-use accounting::representation::{EntryRepresentation};
+use representation::{EntryRepresentation};
 
 pub struct BotLauncher {
     registry: Registry,

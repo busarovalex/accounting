@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use error::{Error};
+use accounting::statistics::TimePeriod;
 
 #[derive(Debug)]
 pub struct App {
@@ -18,7 +19,8 @@ pub enum Command {
     Bot,
     Migrate(MigrateCmd),
     User(UserCmd),
-    Category(CategoryCmd)
+    Category(CategoryCmd),
+    Report(TimePeriod)
 }
 
 #[derive(Debug)]
@@ -138,6 +140,16 @@ impl App {
                     .required_unless_one(&["list"])
                 )
             )
+            .subcommand(SubCommand::with_name("report")
+                .about("generate a report")
+                .arg(Arg::with_name("time_period")
+                    .short("p")
+                    .long("period")
+                    .help("selects a time period")
+                    .takes_value(true)
+                    .possible_values(&["day", "week", "month", "year"])
+                )
+            )
         .get_matches();
 
         let config_path = matches.value_of("config").map(PathBuf::from);
@@ -153,6 +165,8 @@ impl App {
                 Command::User(user(user_matches)?)
             } else if let Some(category_matches) = matches.subcommand_matches("category") {
                 Command::Category(category(category_matches))
+            } else if let Some(report_matches) = matches.subcommand_matches("report") {
+                Command::Report(report(report_matches)?)
             } else {
                 unreachable!()
             }
@@ -163,6 +177,10 @@ impl App {
             command
         })
     }
+}
+
+fn report(matches: &ArgMatches) -> Result<TimePeriod, Error> {
+    TimePeriod::from_str(matches.value_of("time_period").unwrap_or("month"))
 }
 
 fn entry(matches: &ArgMatches) -> EntryCmd {

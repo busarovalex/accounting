@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use std::fmt::Debug;
 
 use accounting::{Entry, TelegramId, User, UserId, Category};
+use accounting::statistics::Statistics;
 use error::{Error, ErrorKind};
 use persistence::{Migration, Table};
 
@@ -101,6 +102,12 @@ impl Registry {
         let new_category = Category::new(user, product_name, category_name);
         self.categories.insert(&RawCategory::from(new_category))?;      
         Ok(())
+    }
+
+    pub fn statistics(&self, user: UserId) -> Result<Statistics, Error> {
+        let entries = self.list(user.clone())?;
+        let categiries = self.categories(user.clone())?;
+        Ok(Statistics::new(entries, categiries))
     }
 }
 

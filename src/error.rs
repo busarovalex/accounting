@@ -27,5 +27,13 @@ error_chain!{
             description("product already has a category")
             display("product \"{}\" already has a category:\"{}\"", product, category)   
         }
+        Calculation(reason: String) {
+            description("error during calculation")
+            display("Error during calculation: {}", reason)   
+        }
+        InvalidEnumVariant {
+            description("invalid enum variant")
+            display("invalid enum variant was provided")   
+        }
     }
 }
