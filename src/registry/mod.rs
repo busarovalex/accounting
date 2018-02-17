@@ -72,6 +72,12 @@ impl Registry {
         Ok(users)
     }
 
+    pub fn update_user<F: Fn(&mut User)>(&self, user: UserId, update: F) -> Result<(), Error> {
+        debug!("updating user {:?}", &user);
+        self.users.update(|u| u.id == user, update)?;
+        Ok(())
+    }
+
     pub fn migrate_entries(&self, migration: Migration) -> Result<(), Error> {
         debug!("migrating entries with {:?}", &migration);
         self.entries.migrate(migration)?;

@@ -93,6 +93,11 @@ fn start(app: App) -> Result<(), Error> {
             let user = registry.find_or_create(TelegramId(user_telegram_id))?;
             println!("{:?}", user);
         },
+        Command::User(UserCmd::SetTimezone(offset_in_minutes)) => {
+            let user = registry.find_or_create(TelegramId(config.telegram_user_id))?;
+            let offset = chrono::NaiveDateTime::from_timestamp(offset_in_minutes as i64 * 60, 0);
+            registry.update_user(user.id, |ref mut u| u.offset = Some(offset))?;
+        },
         Command::Category(CategoryCmd::List) => {
             let user = registry.find_or_create(TelegramId(config.telegram_user_id))?;
             for category in registry.categories(user.id)? {

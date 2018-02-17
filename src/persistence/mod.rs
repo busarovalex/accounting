@@ -96,6 +96,19 @@ impl<P: Serialize + DeserializeOwned + Debug + Into<R> + From<R>, R: Debug> Tabl
         Ok(())
     }
 
+    pub fn update<F: Fn(&R)->bool, T: Fn(&mut R)>(&self, predicate: F, transformer: T) -> Result<(), Error> {
+        debug!("updating data");
+        let original_entries = self.select(|_| true)?;
+        let mut updated_entries = Vec::new();
+        for mut entry in original_entries {
+            if predicate(&entry) {
+                transformer(&mut entry);
+            }
+            updated_entries.push(entry);
+        }
+        self.replace(updated_entries)
+    }
+
     pub fn migrate(&self, migration: Migration) -> Result<(), Error> {
         migrate::migrate(self.table_path(), migration)
     }
@@ -118,6 +131,27 @@ impl<P: Serialize + DeserializeOwned + Debug + Into<R> + From<R>, R: Debug> Tabl
             .open(full_path)?;     
 
         Ok(file)
+    }
+
+    fn replace(&self, new_entries: Vec<R>) -> Result<(), Error> {
+        let mut backup_path = self.base_path.clone();
+        backup_path.push(format!("{}_backup.table", &self.name));
+        let mut backup_file = File::create(&backup_path)?;
+
+        for entry in new_entries {
+            let persistence_entry: P = P::from(entry);
+            let json_serialized = ::serde_json::to_string(&persistence_entry)?;
+            backup_file.write_all(json_serialized.as_bytes())?;
+            backup_file.write_all(b"\n")?;
+        }
+
+        backup_file.flush()?;
+
+        fs::copy(&backup_path, self.table_path())?;
+
+        fs::remove_file(&backup_path)?;
+
+        Ok(())
     }
 
     fn table_path(&self) -> PathBuf {

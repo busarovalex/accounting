@@ -39,7 +39,8 @@ pub enum MigrateCmd {
 #[derive(Debug)]
 pub enum UserCmd {
     List,
-    Add(i64)
+    Add(i64),
+    SetTimezone(i32)
 }
 
 #[derive(Debug)]
@@ -118,8 +119,8 @@ impl App {
                     .short("l")
                     .long("list")
                     .help("lists all users")
-                    .conflicts_with("add")
-                    .required_unless_one(&["add"])
+                    .conflicts_with_all(&["add", "timezone"])
+                    .required_unless_one(&["add", "timezone"])
                 )
                 .arg(Arg::with_name("add")
                     .short("a")
@@ -127,8 +128,17 @@ impl App {
                     .help("adds new user")
                     .value_name("TELEGRAM_ID")
                     .takes_value(true)
-                    .conflicts_with("list")
-                    .required_unless_one(&["list"])
+                    .conflicts_with_all(&["list", "timezone"])
+                    .required_unless_one(&["list", "timezone"])
+                )
+                .arg(Arg::with_name("timezone")
+                    .short("t")
+                    .long("timezone")
+                    .help("sets current user timezone")
+                    .value_name("TIMEZONE_OFFSET_MINUTES")
+                    .takes_value(true)
+                    .conflicts_with_all(&["list", "add"])
+                    .required_unless_one(&["list", "add"])
                 )
             )
             .subcommand(SubCommand::with_name("category")
@@ -221,6 +231,8 @@ fn user(matches: &ArgMatches) -> Result<UserCmd, Error> {
         Ok(UserCmd::Add(i64::from_str(telegram_id)?))
     } else if matches.is_present("list") {
         Ok(UserCmd::List)
+    } else if let Some(timezone) = matches.value_of("timezone") {
+        Ok(UserCmd::SetTimezone(i32::from_str(timezone)?))
     } else {
         unreachable!()
     }
