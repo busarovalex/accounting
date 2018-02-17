@@ -32,7 +32,8 @@ pub enum EntryCmd {
 #[derive(Debug)]
 pub enum MigrateCmd {
     Add(String, String),
-    Remove(String)
+    Remove(String),
+    GenerateUid(String)
 }
 
 #[derive(Debug)]
@@ -88,8 +89,8 @@ impl App {
                     .value_names(&["FIELD_NAME", "FIELD_VALUE"])
                     .number_of_values(2)
                     .takes_value(true)
-                    .conflicts_with("remove")
-                    .required_unless_one(&["remove"])
+                    .conflicts_with_all(&["remove", "generate"])
+                    .required_unless_one(&["remove", "generate"])
                 )
                 .arg(Arg::with_name("remove")
                     .short("r")
@@ -97,9 +98,19 @@ impl App {
                     .help("removes a field from all entries")
                     .value_name("FIELD_NAME")
                     .takes_value(true)
-                    .conflicts_with("add")
-                    .required_unless_one(&["add"])
+                    .conflicts_with_all(&["add", "generate"])
+                    .required_unless_one(&["add", "generate"])
                 )
+                .arg(Arg::with_name("generate")
+                    .short("g")
+                    .long("generate")
+                    .help("generates a uid field from all entries")
+                    .value_name("FIELD_NAME")
+                    .takes_value(true)
+                    .conflicts_with_all(&["add", "remove"])
+                    .required_unless_one(&["add", "remove"])
+                )
+                
             )
             .subcommand(SubCommand::with_name("user")
                 .about("controls users")
@@ -198,6 +209,8 @@ fn migrate(matches: &ArgMatches) -> MigrateCmd {
         MigrateCmd::Add(add_input.next().unwrap().to_owned(), add_input.next().unwrap().to_owned())
     } else if let Some(field_name) = matches.value_of("remove") {
         MigrateCmd::Remove(field_name.to_owned())
+    } else if let Some(field_name) = matches.value_of("generate") {
+        MigrateCmd::GenerateUid(field_name.to_owned())
     } else {
         unreachable!()
     }

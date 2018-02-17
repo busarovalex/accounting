@@ -58,7 +58,7 @@ fn start(app: App) -> Result<(), Error> {
     let config = config::config(&app)?;
     info!("config: {:?}", &config);
     let registry = Registry::new(config.data_path.clone().into())?;
-
+    info!("registry created");
     match app.command {
         Command::Entry(EntryCmd::List) => {
             let user = registry.find_or_create(TelegramId(config.telegram_user_id))?;
@@ -80,6 +80,9 @@ fn start(app: App) -> Result<(), Error> {
         },
         Command::Migrate(MigrateCmd::Remove(field_name)) => {
             registry.migrate_entries(::persistence::Migration::remove(field_name))?;
+        },
+        Command::Migrate(MigrateCmd::GenerateUid(field_name)) => {
+            registry.migrate_entries(::persistence::Migration::generate_uid(field_name))?;
         },
         Command::User(UserCmd::List) => {
             for user in registry.list_users()? {

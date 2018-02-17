@@ -79,6 +79,7 @@ impl Registry {
     }
 
     pub fn migrate_entries(&self, migration: Migration) -> Result<(), Error> {
+        debug!("migrating entries with {:?}", &migration);
         self.entries.migrate(migration)?;
         Ok(())
     }

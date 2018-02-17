@@ -1,4 +1,5 @@
 use serde_json::{Value};
+use uuid::Uuid;
 
 use std::fs::{File};
 use std::io::{Read, Write};
@@ -9,7 +10,8 @@ use persistence::error::{Error, ErrorKind};
 #[derive(Debug)]
 pub enum Migration {
     RemoveField(String),
-    AddField(String, Value)
+    AddField(String, Value),
+    GenerateUid(String)
 }
 
 pub fn migrate(table_file_path: PathBuf, migration: Migration) -> Result<(), Error> {
@@ -48,6 +50,10 @@ impl Migration {
         Ok(Migration::AddField(field_name, value))
     }
 
+    pub fn generate_uid(field_name: String) -> Migration {
+        Migration::GenerateUid(field_name)
+    }
+
     fn apply(&self, value: Value) -> Result<Value, Error> {
         let migrated = match value {
             Value::Object(mut key_value_map) => {
@@ -60,6 +66,13 @@ impl Migration {
                     },
                     &Migration::AddField(ref field_name, ref field_value) => {
                         if key_value_map.insert(field_name.clone(), field_value.clone()).is_some() {
+                            return Err(ErrorKind::KeyWasAlreadyInObject.into());   
+                        }
+                        Value::Object(key_value_map)
+                    },
+                    &Migration::GenerateUid(ref field_name) => {
+                        let uid = format!("{}", Uuid::new_v4());
+                        if key_value_map.insert(field_name.clone(), Value::String(uid)).is_some() {
                             return Err(ErrorKind::KeyWasAlreadyInObject.into());   
                         }
                         Value::Object(key_value_map)
