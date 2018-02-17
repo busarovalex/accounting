@@ -16,9 +16,9 @@ use self::table::{RawEntry, RawUser, RawCategory};
 #[derive(Debug)]
 pub struct Registry {
     path: PathBuf,
-    entries: Table<RawEntry>,
-    users: Table<RawUser>,
-    categories: Table<RawCategory>
+    entries: Table<RawEntry, Entry>,
+    users: Table<RawUser, User>,
+    categories: Table<RawCategory, Category>
 }
 
 impl Registry {
@@ -42,15 +42,11 @@ impl Registry {
 
     pub fn find_or_create(&self, telegram_id: TelegramId) -> Result<User, Error> {
         debug!("finding or creating user with {:?}", &telegram_id);
-        let users: Vec<User> = self.users.select()?
-            .into_iter()
-            .map(|raw| {let user: User = raw.into(); user })
-            .filter(|user| user.telegram_id == Some(telegram_id))
-            .collect();
+        let users: Vec<User> = self.users.select(|user| user.telegram_id == Some(telegram_id))?;
         let user = match users.into_iter().next() {
             None => {
                 let new_user = User::with_telegram_id(telegram_id);
-                self.users.insert(&RawUser::from(new_user.clone()))?;
+                self.users.insert(new_user.clone())?;
                 new_user
             },
             Some(user) => user
@@ -60,26 +56,19 @@ impl Registry {
 
     pub fn add_entry(&self, entry: Entry) -> Result<(), Error> {
         debug!("adding entry {:?}", &entry);
-        self.entries.insert(&RawEntry::from(entry))?;
+        self.entries.insert(entry)?;
         Ok(())
     }
 
     pub fn list(&self, user: UserId) -> Result<Vec<Entry>, Error> {
         debug!("listing entries for {:?}", &user);
-        let entries = self.entries.select()?
-            .into_iter()
-            .map(|raw| {let e: Entry = raw.into(); e})
-            .filter(|e| e.user_id == user)
-            .collect();
+        let entries = self.entries.select(|e| e.user_id == user)?;
         Ok(entries)
     }
 
     pub fn list_users(&self) -> Result<Vec<User>, Error> {
         debug!("listing users");
-        let users = self.users.select()?
-            .into_iter()
-            .map(RawUser::into)
-            .collect();
+        let users = self.users.select(|_| true)?;
         Ok(users)
     }
 
@@ -91,11 +80,7 @@ impl Registry {
 
     pub fn categories(&self, user: UserId) -> Result<Vec<Category>, Error> {
         debug!("listing categories for {:?}", &user);
-        let categories = self.categories.select()?
-            .into_iter()
-            .map(|raw| {let c: Category = raw.into(); c})
-            .filter(|c| c.user_id == user)
-            .collect();
+        let categories = self.categories.select(|c| c.user_id == user)?;
         Ok(categories)
     }
 
@@ -108,7 +93,7 @@ impl Registry {
             return Err(ErrorKind::ProductAlreadyHasCategory(existing.product.to_owned(), existing.category.to_owned()).into());        
         }  
         let new_category = Category::new(user, product_name, category_name);
-        self.categories.insert(&RawCategory::from(new_category))?;      
+        self.categories.insert(new_category)?;      
         Ok(())
     }
 
@@ -120,8 +105,8 @@ impl Registry {
     }
 }
 
-fn table<T: Serialize + DeserializeOwned + Debug>(base_path: PathBuf, table_name: &str) -> Result<Table<T>, Error> {
-    let table: Table<T> = if ::persistence::exist_with_name(&base_path, table_name) {
+fn table<P: Serialize + DeserializeOwned + Debug + Into<R> + From<R>, R: Debug>(base_path: PathBuf, table_name: &str) -> Result<Table<P, R>, Error> {
+    let table: Table<P, R> = if ::persistence::exist_with_name(&base_path, table_name) {
         Table::load(base_path, table_name)?
     } else {
         Table::create(base_path, table_name)?

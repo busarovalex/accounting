@@ -15,10 +15,11 @@ pub use self::migrate::{Migration};
 use self::error::{Error, ErrorKind};
 
 #[derive(Debug)]
-pub struct Table<T: Serialize + DeserializeOwned + Debug> {
+pub struct Table<P: Serialize + DeserializeOwned + Debug + Into<R> + From<R>, R: Debug> {
     name: String,
     base_path: PathBuf,
-    p_: PhantomData<T>
+    p_: PhantomData<P>,
+    r_: PhantomData<R>
 }
 
 pub fn exist_with_name<P: Into<PathBuf>, S: Into<String>>(path: P, name: S) -> bool {
@@ -28,8 +29,8 @@ pub fn exist_with_name<P: Into<PathBuf>, S: Into<String>>(path: P, name: S) -> b
     full_path.is_file()
 }
 
-impl<T: Serialize + DeserializeOwned + Debug> Table<T> {
-    pub fn create<P: Into<PathBuf>, S: Into<String>>(path: P, name: S) -> Result<Table<T>, Error> {
+impl<P: Serialize + DeserializeOwned + Debug + Into<R> + From<R>, R: Debug> Table<P, R> {
+    pub fn create<T: Into<PathBuf>, S: Into<String>>(path: T, name: S) -> Result<Table<P, R>, Error> {
         let base_path = path.into();
         let name = name.into();
         info!("creating new table \"{}\" at {:?}", &name, &base_path);
@@ -52,38 +53,44 @@ impl<T: Serialize + DeserializeOwned + Debug> Table<T> {
         Ok(Table{
             name,
             base_path,
-            p_: PhantomData
+            p_: PhantomData,
+            r_: PhantomData
         })
     }
 
-    pub fn load<P: Into<PathBuf>, S: Into<String>>(path: P, name: S) -> Result<Table<T>, Error> {
+    pub fn load<T: Into<PathBuf>, S: Into<String>>(path: T, name: S) -> Result<Table<P, R>, Error> {
         let base_path = path.into();
         let name = name.into();
         info!("loading existing table \"{}\" at {:?}", &name, &base_path);
         Ok(Table{
             name: name,
             base_path,
-            p_: PhantomData
+            p_: PhantomData,
+            r_: PhantomData
         })
     }
 
-    pub fn select(&self) -> Result<Vec<T>, Error> {
+    pub fn select<F: Fn(&R)->bool >(&self, predicate: F) -> Result<Vec<R>, Error> {
         debug!("selecting data");
         let mut file = self.file_read()?;
         let mut content = String::with_capacity(2048);
         file.read_to_string(&mut content)?;
         let mut entries = Vec::new();
         for line in content.lines() {
-            let entry: T = ::serde_json::from_str::<T>(line)?;
-            entries.push(entry);
+            let entry: P = ::serde_json::from_str::<P>(line)?;
+            let representation: R = entry.into();
+            if predicate(&representation) {
+                entries.push(representation);
+            }
         }
         Ok(entries)
     }
 
-    pub fn insert(&self, value: &T) -> Result<(), Error> {
+    pub fn insert(&self, value: R) -> Result<(), Error> {
         debug!("inserting data {:?}", value);
         let mut file = self.file_append()?;
-        let json_serialized = ::serde_json::to_string(value)?;
+        let persistence_entry: P = P::from(value);
+        let json_serialized = ::serde_json::to_string(&persistence_entry)?;
         file.write_all(json_serialized.as_bytes())?;
         file.write_all(b"\n")?;
         Ok(())
