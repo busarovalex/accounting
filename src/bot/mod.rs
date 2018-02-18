@@ -4,16 +4,14 @@ use telegram_bot::*;
 use chrono::prelude::*;
 
 use std::env;
-use std::str::FromStr;
 
 use registry::Registry;
-use accounting::{Entry, Product, TelegramId};
-use accounting::UserId as AccountingUserId;
+use accounting::{TelegramId};
 use error::Error as AppError;
 use error::ErrorKind;
 use config::Config;
 
-use representation::{EntryRepresentation};
+mod handler;
 
 pub struct BotLauncher {
     registry: Registry,
@@ -78,7 +76,7 @@ impl BotLauncher {
 
                     let user = self.registry.find_or_create(TelegramId(i64::from(message.from.id))).map_err(|e| format!("{:?}", e))?;
                     
-                    match handle(data, &self.registry, user.id) {
+                    match self::handler::handle(data, &self.registry, user.id) {
                         Ok(msg) => api.spawn(message.text_reply(msg)),
                         Err(msg) => api.spawn(message.text_reply(format!("Error: {}", msg))),
                     }                
@@ -91,22 +89,5 @@ impl BotLauncher {
         core.run(future).map_err(|e| format!("{:?}", e))?;
 
         Ok(())
-    }
-}
-
-fn handle(data: &str, registry: &Registry, user: AccountingUserId) -> Result<String, AppError> {
-    match data {
-        "help" | "Help" | "/help" => {
-            Ok(format!("/list"))
-        },
-        "List" | "list" | "/list" => {
-            Ok(registry.list(user)?.into_iter().map(|e| format!("{}\n", EntryRepresentation::from(e))).collect())                        
-        },
-        query @ _ => {
-            let parsed_new_product = Product::from_str(&query)?;
-            let new_entry = Entry::new(user, parsed_new_product);
-            registry.add_entry(new_entry)?;
-            Ok(format!("Ok"))
-        }
     }
 }
