@@ -35,5 +35,9 @@ error_chain!{
             description("invalid enum variant")
             display("invalid enum variant was provided")   
         }
+        NoDataForPeriod {
+            description("no data for report in this period")
+            display("no data for report in this period")   
+        }
     }
 }

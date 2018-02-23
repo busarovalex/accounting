@@ -13,36 +13,18 @@ pub struct Statistics {
     now: NaiveDateTime
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Report<'r> {
     pub period: (NaiveDateTime, NaiveDateTime),
     pub total_spent: i32,
     pub total_products: i32,
-    pub without_category: NoCategory<'r>,
     pub by_category: Vec<ByCategory<'r>>,
-    pub by_product: Vec<ByProduct<'r>>
+    stats: &'r Statistics
 }
 
-#[derive(Debug)]
-pub struct NoCategory<'r> {
-    pub entries: Vec<&'r Entry>,
-    pub total_spent: i32,
-    pub total_products: i32,
-    pub persent: f32
-}
-
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ByCategory<'r> {
     pub category: &'r str,
-    pub entries: Vec<&'r Entry>,
-    pub total_spent: i32,
-    pub total_products: i32,
-    pub persent: f32
-}
-
-#[derive(Debug)]
-pub struct ByProduct<'r> {
-    pub product: &'r str,
     pub entries: Vec<&'r Entry>,
     pub total_spent: i32,
     pub total_products: i32,
@@ -54,7 +36,8 @@ pub enum TimePeriod {
     Today,
     ThisWeek,
     ThisMonth,
-    ThisYear
+    ThisYear,
+    Any(NaiveDate, NaiveDate)
 }
 
 impl FromStr for TimePeriod {
@@ -70,6 +53,21 @@ impl FromStr for TimePeriod {
     }
 }
 
+impl<'r> Report<'r> {
+    pub fn subreports(&self) -> Result<Option<Vec<Report<'r>>>, Error> {
+        if let Some(periods) = subperiods(self.period.0.date(), self.period.1.date()) {
+            let mut subreports = Vec::new();
+            for (from, to) in periods {
+                if let Some(subreport) = self.stats.report(TimePeriod::Any(from, to))? {
+                    subreports.push(subreport);
+                }
+            }
+            return Ok(Some(subreports));
+        }
+        Ok(None)
+    }
+}
+
 impl Statistics {
     pub fn new(entries: Vec<Entry>, categories: Vec<Category>) -> Statistics {
         Statistics {
@@ -79,49 +77,34 @@ impl Statistics {
         }
     }
 
-    pub fn report(&self, period: TimePeriod) -> Result<Report, Error> {
+    pub fn report(&self, period: TimePeriod) -> Result<Option<Report>, Error> {
         debug!("report for {:?}", &period);
         let (from, till) = self.period(period);
         let entries_in_period: Vec<&Entry> = self.entries.iter()
             .filter(|e| e.time >= from && e.time <= till)
             .collect();
+        if entries_in_period.is_empty() {
+            return Ok(None);
+        }
         let total_spent = Self::total_spent(&entries_in_period)?;
 
-        Ok(Report {
+        Ok(Some(Report {
             period: (from, till),
             total_spent,
             total_products: entries_in_period.len() as i32,
-            without_category: self.without_category(&entries_in_period, total_spent)?,
             by_category: self.by_category(&entries_in_period, total_spent)?,
-            by_product: self.by_product(&entries_in_period, total_spent)?
-        })
-    }
-
-    fn without_category<'r>(&'r self, entries: &[&'r Entry], total_spent: i32) -> Result<NoCategory<'r>, Error> {
-        let entries_without_category: Vec<&Entry> = entries.iter()
-            .filter(|entry| !self.categories.contains_key(&entry.product.name))
-            .map(|e| *e)
-            .collect();
-        let (total_spent, total_products, persent) = 
-            Self::stats(&entries_without_category, total_spent)?;
-
-        Ok(NoCategory {
-            entries: entries_without_category,
-            total_spent,
-            total_products,
-            persent
-        })
+            stats: &self
+        }))
     }
 
     fn by_category<'r>(&'r self, entries: &[&'r Entry], total_spent: i32) -> Result<Vec<ByCategory<'r>>, Error> {
         let mut categories: HashMap<&str, Vec<&Entry>> = HashMap::new();
 
         for entry in entries {
-            if let Some(category) = self.categories.get(&entry.product.name) {
-                categories.entry(category).or_insert_with(|| Vec::new()).push(entry);
-            }
+            let category_name = self.categories.get(&entry.product.name)
+                                               .unwrap_or(&entry.product.name);
+            categories.entry(category_name).or_insert_with(|| Vec::new()).push(entry);
         }
-
 
         let mut by_category = Vec::new();
         for (category, entries) in categories {
@@ -140,33 +123,6 @@ impl Statistics {
         by_category.reverse();
 
         Ok(by_category)
-    }
-
-    fn by_product<'r>(&'r self, entries: &[&'r Entry], total_spent: i32) -> Result<Vec<ByProduct<'r>>, Error> {
-        let mut products: HashMap<&str, Vec<&Entry>> = HashMap::new();
-
-        for entry in entries {
-            products.entry(&entry.product.name).or_insert_with(|| Vec::new()).push(entry);
-        }
-
-
-        let mut by_product = Vec::new();
-        for (product, entries) in products {
-            let (total_spent, total_products, persent) = 
-                Self::stats(&entries, total_spent)?;
-            by_product.push(ByProduct {
-                product,
-                entries,
-                total_spent,
-                total_products,
-                persent
-            });
-        }
-
-        by_product.sort_unstable_by_key(|prod| prod.total_spent);
-        by_product.reverse();
-
-        Ok(by_product)
     }
 
     fn stats(entries: &[&Entry], all_total_spent: i32) -> Result<(i32, i32, f32), Error> {
@@ -208,11 +164,15 @@ impl Statistics {
             ),
             TimePeriod::ThisMonth => (
                 self.now.date().with_day(1).unwrap().and_time(start_of_day()),
-                NaiveDate::from_ymd(self.now.year(), self.next_month(), 1).pred().and_time(end_of_day())
+                last_day_of_month(self.now.date()).and_time(end_of_day())
             ),
             TimePeriod::ThisYear => (
                 NaiveDate::from_ymd(self.now.year(), 1, 1).and_time(start_of_day()),
                 NaiveDate::from_ymd(self.now.year() + 1, 1, 1).pred().and_time(end_of_day()),
+            ),
+            TimePeriod::Any(from, to) => (
+                from.and_time(start_of_day()),
+                to.and_time(end_of_day())
             )
         }
     }
@@ -220,10 +180,32 @@ impl Statistics {
     fn this_week(&self, day: Weekday) -> NaiveDate {
         NaiveDate::from_isoywd(self.now.year(), self.now.iso_week().week(), day)
     }
+}
 
-    fn next_month(&self) -> u32 {
-        (self.now.month0() + 1) % 12 + 1
+fn subperiods(from: NaiveDate, to: NaiveDate) -> Option<Vec<(NaiveDate, NaiveDate)>> {
+    debug!("{}, {}", from, to);
+    if (from.month0() >= to.month0() && from.year() == to.year()) ||
+       (from.year() > to.year()) {
+        return None;
     }
+
+    let mut periods = Vec::new();
+    let mut next_period_start = from;
+    let mut next_period_end = last_day_of_month(from);
+    while next_period_end < to {
+        periods.push((next_period_start, next_period_end));
+        next_period_start = next_period_end.succ();
+        next_period_end = last_day_of_month(next_period_start);
+    }
+    periods.push((next_period_start, to));
+    Some(periods)
+}
+
+fn last_day_of_month(date: NaiveDate) -> NaiveDate {
+    let year = date.year();
+    let month = date.month();
+    NaiveDate::from_ymd_opt(year, month + 1, 1)
+            .unwrap_or(NaiveDate::from_ymd(year + 1, 1, 1)).pred()
 }
 
 fn start_of_day() -> NaiveTime {
@@ -232,4 +214,24 @@ fn start_of_day() -> NaiveTime {
 
 fn end_of_day() -> NaiveTime {
     NaiveTime::from_hms(23, 59, 59)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn correct_subperiods() {
+        assert_eq!(subperiods(
+            NaiveDate::from_ymd(2018, 1, 1), 
+            NaiveDate::from_ymd(2018, 1, 30)), 
+        None);
+        assert_eq!(subperiods(
+            NaiveDate::from_ymd(2018, 1, 1), 
+            NaiveDate::from_ymd(2018, 2, 28)), 
+        Some(vec![
+            (NaiveDate::from_ymd(2018, 1, 1), NaiveDate::from_ymd(2018, 1, 31)), 
+            (NaiveDate::from_ymd(2018, 2, 1), NaiveDate::from_ymd(2018, 2, 28))
+        ]));
+    }
 }

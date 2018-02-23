@@ -30,7 +30,7 @@ mod representation;
 use app::{App, Command, EntryCmd, MigrateCmd, UserCmd, CategoryCmd};
 use registry::Registry;
 use accounting::{Entry, Product, TelegramId};
-use error::{Error};
+use error::{Error, ErrorKind};
 
 fn main() {
     env_logger::init();
@@ -111,7 +111,8 @@ fn start(app: App) -> Result<(), Error> {
         Command::Report(time_period) => {
             let user = registry.find_or_create(TelegramId(config.telegram_user_id))?;
             let stats = registry.statistics(user.id)?;
-            let report = stats.report(time_period)?;
+            let err: Error = ErrorKind::NoDataForPeriod.into();
+            let report = stats.report(time_period)?.ok_or(err)?;
             println!("{}", representation::ReportRepresentation::from(report));
         }
     }
