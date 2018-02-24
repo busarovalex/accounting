@@ -1,0 +1,8 @@
+data_path: ./data
+telegram_user_id: your_telegram_id
+allowed_telegram_users: [your_telegram_id, ...]
+max_number_of_tries: 5
+email_from: your_email@host.com
+email_smtp_host: smtp.host.com
+email_smtp_credential_username: your_email
+email_smtp_credential_password: password
