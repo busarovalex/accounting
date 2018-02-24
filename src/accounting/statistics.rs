@@ -5,6 +5,7 @@ use std::str::FromStr;
 
 use super::{Entry, Category};
 use error::{Error, ErrorKind};
+use dates::{last_day_of_month, start_of_day, end_of_day};
 
 #[derive(Debug)]
 pub struct Statistics {
@@ -199,21 +200,6 @@ fn subperiods(from: NaiveDate, to: NaiveDate) -> Option<Vec<(NaiveDate, NaiveDat
     }
     periods.push((next_period_start, to));
     Some(periods)
-}
-
-fn last_day_of_month(date: NaiveDate) -> NaiveDate {
-    let year = date.year();
-    let month = date.month();
-    NaiveDate::from_ymd_opt(year, month + 1, 1)
-            .unwrap_or(NaiveDate::from_ymd(year + 1, 1, 1)).pred()
-}
-
-fn start_of_day() -> NaiveTime {
-    NaiveTime::from_hms(0, 0, 0)
-}
-
-fn end_of_day() -> NaiveTime {
-    NaiveTime::from_hms(23, 59, 59)
 }
 
 #[cfg(test)]

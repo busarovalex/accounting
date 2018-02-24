@@ -5,12 +5,16 @@ use std::fs::File;
 use app::App;
 use error::{Error};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Config {
     pub data_path: String,
     pub telegram_user_id: i64,
     pub allowed_telegram_users: Vec<i64>,
-    pub max_number_of_tries: i32
+    pub max_number_of_tries: i32,
+    pub email_from: Option<String>,
+    pub email_smtp_host: Option<String>,
+    pub email_smtp_credential_username: Option<String>,
+    pub email_smtp_credential_password: Option<String>
 }
 
 pub fn config(app: &App) -> Result<Config, Error> {

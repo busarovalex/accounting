@@ -20,7 +20,7 @@ pub enum Command {
     Migrate(MigrateCmd),
     User(UserCmd),
     Category(CategoryCmd),
-    Report(TimePeriod)
+    Report(TimePeriod, bool)
 }
 
 #[derive(Debug)]
@@ -170,6 +170,11 @@ impl App {
                     .takes_value(true)
                     .possible_values(&["day", "week", "month", "year"])
                 )
+                .arg(Arg::with_name("html")
+                    .short("h")
+                    .long("html")
+                    .help("prints html representation")
+                )
             )
         .get_matches();
 
@@ -187,7 +192,7 @@ impl App {
             } else if let Some(category_matches) = matches.subcommand_matches("category") {
                 Command::Category(category(category_matches))
             } else if let Some(report_matches) = matches.subcommand_matches("report") {
-                Command::Report(report(report_matches)?)
+                Command::Report(report(report_matches)?, report_matches.is_present("html"))
             } else {
                 unreachable!()
             }

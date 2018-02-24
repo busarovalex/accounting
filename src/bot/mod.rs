@@ -12,9 +12,12 @@ use error::ErrorKind;
 use config::Config;
 
 mod handler;
+mod report;
+mod email;
 
 pub struct BotLauncher {
     registry: Registry,
+    config: Config,
     latest_start: NaiveDateTime,
     number_of_tries: i32,
     max_number_of_tries: i32,
@@ -22,13 +25,14 @@ pub struct BotLauncher {
 }
 
 impl BotLauncher {
-    pub fn new(registry: Registry, config: Config,) -> BotLauncher {
+    pub fn new(registry: Registry, config: Config) -> BotLauncher {
         BotLauncher {
             registry,
             max_number_of_tries: config.max_number_of_tries,
             number_of_tries: 0,
-            allowed_telegram_users: config.allowed_telegram_users,
-            latest_start: ::chrono::offset::Local::now().naive_local()
+            allowed_telegram_users: config.allowed_telegram_users.clone(),
+            latest_start: ::chrono::offset::Local::now().naive_local(),
+            config
         }
     }
 
@@ -76,9 +80,12 @@ impl BotLauncher {
 
                     let user = self.registry.find_or_create(TelegramId(i64::from(message.from.id))).map_err(|e| format!("{:?}", e))?;
                     
-                    match self::handler::handle(data, &self.registry, user.id) {
+                    match self::handler::handle(data, &self.config, &self.registry, user.id) {
                         Ok(msg) => api.spawn(message.text_reply(msg)),
-                        Err(msg) => api.spawn(message.text_reply(format!("Error: {}", msg))),
+                        Err(msg) => {
+                            warn!("{}", msg);
+                            api.spawn(message.text_reply(format!("Error: {}", msg)))
+                        },
                     }                
                 }
             }

@@ -5,6 +5,8 @@ use std::io;
 use std::num::ParseIntError;
 
 use persistence;
+use lettre_email::error::Error as EmailError;
+use lettre::smtp::error::Error as SmtpError;
 
 error_chain!{
     foreign_links {
@@ -12,6 +14,8 @@ error_chain!{
         Persistence(persistence::error::Error) #[doc = "Error during persistence"];
         Yaml(serde_yaml::Error) #[doc = "Error during yamd (de)serialization"];
         ParseIntError(ParseIntError) #[doc = "Error during parsing"];
+        Email(EmailError) #[doc = "Error during sending email"];
+        Smtp(SmtpError) #[doc = "Error during smtp"];
     }
 
     errors {
@@ -38,6 +42,14 @@ error_chain!{
         NoDataForPeriod {
             description("no data for report in this period")
             display("no data for report in this period")   
+        }
+        InvalidDate {
+            description("invalid date provided")
+            display("invalid date provided")
+        }
+        EmailNotSetUp(property: String) {
+            description("email sending is not set up")
+            display("email sending is not set up: add \"{}\" property in config", property)
         }
     }
 }

@@ -1,3 +1,5 @@
+#![recursion_limit="128"]
+
 extern crate uuid;
 extern crate futures;
 extern crate telegram_bot;
@@ -15,6 +17,10 @@ extern crate error_chain;
 extern crate log;
 extern crate env_logger;
 extern crate serde_yaml;
+extern crate lettre;
+extern crate lettre_email;
+extern crate mime;
+extern crate base64;
 
 use std::str::FromStr;
 
@@ -26,6 +32,7 @@ mod persistence;
 mod error;
 mod config;
 mod representation;
+mod dates;
 
 use app::{App, Command, EntryCmd, MigrateCmd, UserCmd, CategoryCmd};
 use registry::Registry;
@@ -56,7 +63,8 @@ fn main() {
 
 fn start(app: App) -> Result<(), Error> {
     let config = config::config(&app)?;
-    info!("config: {:?}", &config);
+    let config_without_passwords = config::Config { email_smtp_credential_password: None, ..config.clone()};
+    info!("config: {:?}", &config_without_passwords);
     let registry = Registry::new(config.data_path.clone().into())?;
     info!("registry created");
     match app.command {
@@ -108,12 +116,16 @@ fn start(app: App) -> Result<(), Error> {
             let user = registry.find_or_create(TelegramId(config.telegram_user_id))?;
             registry.add_category(user.id, product_name, category_name)?;
         },
-        Command::Report(time_period) => {
+        Command::Report(time_period, html) => {
             let user = registry.find_or_create(TelegramId(config.telegram_user_id))?;
             let stats = registry.statistics(user.id)?;
             let err: Error = ErrorKind::NoDataForPeriod.into();
             let report = stats.report(time_period)?.ok_or(err)?;
-            println!("{}", representation::ReportRepresentation::from(report));
+            if html {
+                println!("{}", representation::ReactReportRepresentation::from(report));
+            } else {
+                println!("{}", representation::ReportRepresentation::from(report));
+            }
         }
     }
 
