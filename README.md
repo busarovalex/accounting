@@ -23,3 +23,6 @@ SUBCOMMANDS:
     report      generate a report
     user        controls users
 ```
+report example
+
+![Alt text](/screenshots/report.png?raw=true "Report example")
