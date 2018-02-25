@@ -13,11 +13,13 @@ pub fn report<'a, I>(commands: &mut I, config: &Config, registry: &Registry, use
     let reports = ReportFactory { registry, user };
     let time_period = commands.next();
     let email = commands.next();
-    match (time_period, email) {
-        (None, None) => reports.print_week_report(),
-        (Some(time_period), None) => reports.try_print_report(time_period),
-        (Some(time_period), Some(email)) => reports.try_send_report(config, time_period, email),
-        (None, Some(_)) => unreachable!()
+    let last = commands.next();
+    match (time_period, email, last) {
+        (None, None, None) => reports.print_week_report(),
+        (Some(time_period), None, _) => reports.try_print_report(time_period),
+        (Some(time_period), Some(email), None) => reports.try_send_report(config, time_period, email),
+        (Some(_), Some(_), Some(_)) => Err(wrong_bot_usage()),
+        (None, _, _) => unreachable!()
     }
 }
 
@@ -105,5 +107,9 @@ fn start_of(now: NaiveDate, month: u32) -> NaiveDate {
 
 fn end_of(now: NaiveDate, month: u32) -> NaiveDate {
     ::dates::last_day_of_month(start_of(now, month))
+}
+
+fn wrong_bot_usage() -> Error {
+    ErrorKind::BotUsage("ожидается два аргумента".to_owned()).into()
 }
 

@@ -51,5 +51,9 @@ error_chain!{
             description("email sending is not set up")
             display("email sending is not set up: add \"{}\" property in config", property)
         }
+        BotUsage(reason: String){
+            description("wrong bot usage")
+            display("Неверное использование бота: {}", reason)   
+        }
     }
 }
