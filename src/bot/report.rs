@@ -55,7 +55,7 @@ impl<'r> ReportFactory<'r> {
         let statistics = self.statistics()?;
         let report = statistics.report(time_period)?;
         match report {
-            Some(actual_report) => Ok(format!("{}", ::representation::ReportRepresentation::from(actual_report))),
+            Some(actual_report) => Ok(format!("{}", ::representation::BotReportRepresentation::from(actual_report))),
             None => Ok(format!("нет данных за этот период"))
         }
     }
