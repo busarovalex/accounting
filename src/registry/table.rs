@@ -1,6 +1,7 @@
 use chrono::prelude::*;
 
-use accounting::{User, Entry, EntryId, Tags, Tag, TelegramId, UserId, Product, Category, CategoryId};
+use accounting::{Category, CategoryId, Entry, EntryId, Product, Tag, Tags, TelegramId, User,
+                 UserId};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct RawEntry {
@@ -9,7 +10,7 @@ pub struct RawEntry {
     product: String,
     price: i32,
     time: NaiveDateTime,
-    tags: Vec<String>
+    tags: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -17,14 +18,14 @@ pub struct RawCategory {
     id: String,
     user_id: String,
     product: String,
-    category: String
+    category: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct RawUser {
     id: String,
     telegram_id: Option<i64>,
-    offset: Option<NaiveDateTime>
+    offset: Option<NaiveDateTime>,
 }
 
 impl Into<User> for RawUser {
@@ -32,17 +33,17 @@ impl Into<User> for RawUser {
         User {
             id: UserId::new(self.id),
             telegram_id: self.telegram_id.map(|val| TelegramId(val)),
-            offset: self.offset
+            offset: self.offset,
         }
     }
 }
 
-impl From<User> for RawUser{
+impl From<User> for RawUser {
     fn from(user: User) -> RawUser {
         RawUser {
             id: user.id.0,
             telegram_id: user.telegram_id.map(|id| id.0),
-            offset: user.offset
+            offset: user.offset,
         }
     }
 }
@@ -53,7 +54,7 @@ impl Into<Category> for RawCategory {
             id: CategoryId::new(self.id),
             user_id: UserId::new(self.user_id),
             product: self.product,
-            category: self.category
+            category: self.category,
         }
     }
 }
@@ -64,7 +65,7 @@ impl From<Category> for RawCategory {
             id: category.id.0,
             user_id: category.user_id.0,
             product: category.product,
-            category: category.category
+            category: category.category,
         }
     }
 }
@@ -76,12 +77,12 @@ impl Into<Entry> for RawEntry {
             user_id: UserId::new(self.user_id),
             product: Product {
                 name: self.product,
-                price: self.price
+                price: self.price,
             },
             time: self.time,
             tags: Tags {
-                tags: self.tags.into_iter().map(|value| Tag{value}).collect()
-            }
+                tags: self.tags.into_iter().map(|value| Tag { value }).collect(),
+            },
         }
     }
 }
@@ -94,7 +95,7 @@ impl From<Entry> for RawEntry {
             product: entry.product.name,
             price: entry.product.price,
             time: entry.time,
-            tags: entry.tags.tags.into_iter().map(|tag| tag.value).collect()
+            tags: entry.tags.tags.into_iter().map(|tag| tag.value).collect(),
         }
     }
 }

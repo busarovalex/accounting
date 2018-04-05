@@ -11,7 +11,7 @@ pub struct TelegramId(pub i64);
 pub struct User {
     pub id: UserId,
     pub telegram_id: Option<TelegramId>,
-    pub offset: Option<NaiveDateTime>
+    pub offset: Option<NaiveDateTime>,
 }
 
 impl User {
@@ -19,7 +19,7 @@ impl User {
         User {
             id: UserId::generate(),
             telegram_id: Some(telegram_id),
-            offset: None
+            offset: None,
         }
     }
 }

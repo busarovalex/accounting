@@ -3,7 +3,7 @@ pub enum Error {
     InvalidCharacter(char),
     Evaluation,
     Overflow,
-    UnbalancedParentheses
+    UnbalancedParentheses,
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -11,7 +11,7 @@ enum Token {
     Number(i32),
     Operation(Operation),
     OpenBracket,
-    CloseBracket
+    CloseBracket,
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -19,22 +19,22 @@ enum Operation {
     Mul,
     Add,
     Sub,
-    Div
+    Div,
 }
 
 struct TokenBuilder {
-    current_token: Option<Token>
+    current_token: Option<Token>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum Instruction {
     Number(i32),
-    Operation(Operation)
+    Operation(Operation),
 }
 
 #[derive(Debug)]
 struct Evaluator {
-    instructions: Vec<Instruction>
+    instructions: Vec<Instruction>,
 }
 
 pub fn evaluate(input: &str) -> Result<i32, Error> {
@@ -50,14 +50,12 @@ fn stack(tokens: Vec<Token>) -> Result<Vec<Instruction>, Error> {
         match token {
             Token::Number(value) => instructions.push(Instruction::Number(value)),
             Token::OpenBracket => stack.push(Token::OpenBracket),
-            Token::CloseBracket => {
-                'close_bracket: while let Some(token) = stack.pop() {
-                    match token {
-                        Token::OpenBracket => break 'close_bracket,
-                        Token::Number(value) => instructions.push(Instruction::Number(value)),
-                        Token::Operation(value) => instructions.push(Instruction::Operation(value)),
-                        _ => unreachable!()
-                    }
+            Token::CloseBracket => 'close_bracket: while let Some(token) = stack.pop() {
+                match token {
+                    Token::OpenBracket => break 'close_bracket,
+                    Token::Number(value) => instructions.push(Instruction::Number(value)),
+                    Token::Operation(value) => instructions.push(Instruction::Operation(value)),
+                    _ => unreachable!(),
                 }
             },
             Token::Operation(value) => {
@@ -70,7 +68,7 @@ fn stack(tokens: Vec<Token>) -> Result<Vec<Instruction>, Error> {
                         Token::OpenBracket => {
                             stack.push(Token::OpenBracket);
                             break 'operation;
-                        },
+                        }
                         Token::Number(number) => instructions.push(Instruction::Number(number)),
                         Token::Operation(another_value) => {
                             if value.precedence() <= another_value.precedence() {
@@ -79,8 +77,8 @@ fn stack(tokens: Vec<Token>) -> Result<Vec<Instruction>, Error> {
                                 stack.push(Token::Operation(another_value));
                                 break 'operation;
                             }
-                        },
-                        _ => unreachable!()
+                        }
+                        _ => unreachable!(),
                     }
                 }
                 stack.push(Token::Operation(value));
@@ -92,7 +90,7 @@ fn stack(tokens: Vec<Token>) -> Result<Vec<Instruction>, Error> {
             Token::OpenBracket => return Err(Error::UnbalancedParentheses),
             Token::Number(value) => instructions.push(Instruction::Number(value)),
             Token::Operation(value) => instructions.push(Instruction::Operation(value)),
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
     Ok(instructions)
@@ -111,7 +109,7 @@ fn tokens(input: &str) -> Result<Vec<Token>, Error> {
             '(' => token_builder.push_token(Token::OpenBracket),
             ')' => token_builder.push_token(Token::CloseBracket),
             ' ' => None,
-            invalid_char @ _ => return Err(Error::InvalidCharacter(invalid_char))
+            invalid_char @ _ => return Err(Error::InvalidCharacter(invalid_char)),
         } {
             tokens.push(next_token);
         }
@@ -126,9 +124,7 @@ fn tokens(input: &str) -> Result<Vec<Token>, Error> {
 
 impl Evaluator {
     fn new(instructions: Vec<Instruction>) -> Self {
-        Evaluator {
-            instructions
-        }
+        Evaluator { instructions }
     }
 
     fn evaluate(&mut self) -> Result<i32, Error> {
@@ -149,7 +145,7 @@ impl Evaluator {
         let last_value = stack.pop();
         match (last_value, stack.is_empty()) {
             (Some(result), true) => Ok(result),
-            _                    => Err(Error::Evaluation)
+            _ => Err(Error::Evaluation),
         }
     }
 }
@@ -160,7 +156,7 @@ impl Operation {
             Operation::Add => left.checked_add(right).ok_or(Error::Overflow),
             Operation::Mul => left.checked_mul(right).ok_or(Error::Overflow),
             Operation::Sub => left.checked_sub(right).ok_or(Error::Overflow),
-            Operation::Div => left.checked_div(right).ok_or(Error::Overflow)
+            Operation::Div => left.checked_div(right).ok_or(Error::Overflow),
         }
     }
 
@@ -169,27 +165,32 @@ impl Operation {
             Operation::Add => 0,
             Operation::Mul => 1,
             Operation::Sub => 0,
-            Operation::Div => 1
-        }   
+            Operation::Div => 1,
+        }
     }
 }
 
 impl TokenBuilder {
     fn new() -> TokenBuilder {
         TokenBuilder {
-            current_token: None
+            current_token: None,
         }
     }
 
     fn push_number(&mut self, number: i32) -> Result<Option<Token>, Error> {
         assert!(number < 10 && number >= 0);
         if let &mut Some(Token::Number(ref mut value)) = &mut self.current_token {
-            *value = value.checked_mul(10).and_then(|val| val.checked_add(number)).ok_or(Error::Overflow)?;
+            *value = value
+                .checked_mul(10)
+                .and_then(|val| val.checked_add(number))
+                .ok_or(Error::Overflow)?;
             return Ok(None);
         }
 
-        Ok(::std::mem::replace(&mut self.current_token, Some(Token::Number(number))))
-        
+        Ok(::std::mem::replace(
+            &mut self.current_token,
+            Some(Token::Number(number)),
+        ))
     }
 
     fn push_operation(&mut self, operation: Operation) -> Option<Token> {
@@ -211,31 +212,40 @@ mod tests {
 
     #[test]
     fn correctly_emits_tokens() {
-        assert_eq!(tokens("213+123/()99").unwrap(), vec![
-            Token::Number(213),
-            Token::Operation(Operation::Add),
-            Token::Number(123),
-            Token::Operation(Operation::Div),
-            Token::OpenBracket,
-            Token::CloseBracket,
-            Token::Number(99)
-        ]);
+        assert_eq!(
+            tokens("213+123/()99").unwrap(),
+            vec![
+                Token::Number(213),
+                Token::Operation(Operation::Add),
+                Token::Number(123),
+                Token::Operation(Operation::Div),
+                Token::OpenBracket,
+                Token::CloseBracket,
+                Token::Number(99),
+            ]
+        );
     }
 
     #[test]
     fn test_stack() {
-        assert_eq!(stack(tokens("10+10").unwrap()).unwrap(), vec![
-            Instruction::Number(10),
-            Instruction::Number(10),
-            Instruction::Operation(Operation::Add)
-        ]);
-        assert_eq!(stack(tokens("10+5*2").unwrap()).unwrap(), vec![
-            Instruction::Number(10),
-            Instruction::Number(5),
-            Instruction::Number(2),
-            Instruction::Operation(Operation::Mul),
-            Instruction::Operation(Operation::Add)
-        ]);
+        assert_eq!(
+            stack(tokens("10+10").unwrap()).unwrap(),
+            vec![
+                Instruction::Number(10),
+                Instruction::Number(10),
+                Instruction::Operation(Operation::Add),
+            ]
+        );
+        assert_eq!(
+            stack(tokens("10+5*2").unwrap()).unwrap(),
+            vec![
+                Instruction::Number(10),
+                Instruction::Number(5),
+                Instruction::Number(2),
+                Instruction::Operation(Operation::Mul),
+                Instruction::Operation(Operation::Add),
+            ]
+        );
     }
 
     #[test]

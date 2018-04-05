@@ -6,7 +6,7 @@ use chrono::prelude::*;
 use std::env;
 
 use registry::Registry;
-use accounting::{TelegramId};
+use accounting::TelegramId;
 use error::Error as AppError;
 use error::ErrorKind;
 use config::Config;
@@ -14,6 +14,7 @@ use config::Config;
 mod handler;
 mod report;
 mod email;
+mod category;
 
 pub struct BotLauncher {
     registry: Registry,
@@ -21,7 +22,7 @@ pub struct BotLauncher {
     latest_start: NaiveDateTime,
     number_of_tries: i32,
     max_number_of_tries: i32,
-    allowed_telegram_users: Vec<i64>
+    allowed_telegram_users: Vec<i64>,
 }
 
 impl BotLauncher {
@@ -32,7 +33,7 @@ impl BotLauncher {
             number_of_tries: 0,
             allowed_telegram_users: config.allowed_telegram_users.clone(),
             latest_start: ::chrono::offset::Local::now().naive_local(),
-            config
+            config,
         }
     }
 
@@ -53,7 +54,7 @@ impl BotLauncher {
 
             match self.run() {
                 Ok(_) => unreachable!(),
-                Err(msg) => warn!("{}", msg)
+                Err(msg) => warn!("{}", msg),
             }
 
             ::std::thread::sleep(::std::time::Duration::new(5, 0));
@@ -64,29 +65,32 @@ impl BotLauncher {
         let mut core = Core::new().map_err(|e| format!("{:?}", e))?;
 
         let token = env::var("TELEGRAM_BOT_TOKEN").map_err(|e| format!("{:?}", e))?;
-        let api = Api::configure(token).build(core.handle()).map_err(|e| format!("{:?}", e))?;
-        
-        let future = api.stream().for_each(|update| {
+        let api = Api::configure(token)
+            .build(core.handle())
+            .map_err(|e| format!("{:?}", e))?;
 
+        let future = api.stream().for_each(|update| {
             if let UpdateKind::Message(message) = update.kind {
                 let author_id: i64 = message.from.id.into();
-                
+
                 if !self.allowed_telegram_users.contains(&author_id) {
                     return Ok(());
                 }
-                if let MessageKind::Text {ref data, ..} = message.kind {
+                if let MessageKind::Text { ref data, .. } = message.kind {
                     trace!("{:?}", &message);
                     trace!("<{}>: {}", &message.from.first_name, data);
 
-                    let user = self.registry.find_or_create(TelegramId(i64::from(message.from.id))).map_err(|e| format!("{:?}", e))?;
-                    
+                    let user = self.registry
+                        .find_or_create(TelegramId(i64::from(message.from.id)))
+                        .map_err(|e| format!("{:?}", e))?;
+
                     match self::handler::handle(data, &self.config, &self.registry, user.id) {
                         Ok(msg) => api.spawn(message.text_reply(msg)),
                         Err(msg) => {
                             warn!("{}", msg);
                             api.spawn(message.text_reply(format!("Error: {}", msg)))
-                        },
-                    }                
+                        }
+                    }
                 }
             }
 

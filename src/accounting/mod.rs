@@ -1,9 +1,9 @@
 pub mod statistics;
 
-pub use self::entry::{EntryId, Entry, Product};
-pub use self::user::{UserId, TelegramId, User};
+pub use self::entry::{Entry, EntryId, Product};
+pub use self::user::{TelegramId, User, UserId};
 pub use self::category::{Category, CategoryId};
-pub use self::tag::{Tags, Tag};
+pub use self::tag::{Tag, Tags};
 
 mod entry;
 mod evaluation;

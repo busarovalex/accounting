@@ -1,17 +1,17 @@
 #[derive(Debug)]
 pub struct Tags {
-    pub tags: Vec<Tag>
+    pub tags: Vec<Tag>,
 }
 
 #[derive(Debug)]
 pub struct Tag {
-    pub value: String
+    pub value: String,
 }
 
 impl Tags {
     pub fn empty() -> Tags {
         Tags {
-            tags: Vec::with_capacity(0)
+            tags: Vec::with_capacity(0),
         }
     }
 }

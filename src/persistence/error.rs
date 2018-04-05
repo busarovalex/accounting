@@ -17,7 +17,7 @@ error_chain!{
 
         IoError {
             description("An IO error occurred during persistense")
-            display("An IO error occurred during persistense")   
+            display("An IO error occurred during persistense")
         }
 
         JsonValueIsNotObject {

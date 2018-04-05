@@ -3,15 +3,15 @@ use chrono::prelude::*;
 use std::collections::HashMap;
 use std::str::FromStr;
 
-use super::{Entry, Category};
+use super::{Category, Entry};
 use error::{Error, ErrorKind};
-use dates::{last_day_of_month, start_of_day, end_of_day};
+use dates::{end_of_day, last_day_of_month, start_of_day};
 
 #[derive(Debug)]
 pub struct Statistics {
     entries: Vec<Entry>,
     categories: HashMap<String, String>,
-    now: NaiveDateTime
+    now: NaiveDateTime,
 }
 
 #[derive(Debug, Clone)]
@@ -20,7 +20,7 @@ pub struct Report<'r> {
     pub total_spent: i32,
     pub total_products: i32,
     pub by_category: Vec<ByCategory<'r>>,
-    stats: &'r Statistics
+    stats: &'r Statistics,
 }
 
 #[derive(Debug, Clone)]
@@ -29,7 +29,7 @@ pub struct ByCategory<'r> {
     pub entries: Vec<&'r Entry>,
     pub total_spent: i32,
     pub total_products: i32,
-    pub persent: f32
+    pub persent: f32,
 }
 
 #[derive(Debug)]
@@ -38,7 +38,7 @@ pub enum TimePeriod {
     ThisWeek,
     ThisMonth,
     ThisYear,
-    Any(NaiveDate, NaiveDate)
+    Any(NaiveDate, NaiveDate),
 }
 
 impl FromStr for TimePeriod {
@@ -49,7 +49,7 @@ impl FromStr for TimePeriod {
             "week" => Ok(TimePeriod::ThisWeek),
             "month" => Ok(TimePeriod::ThisMonth),
             "year" => Ok(TimePeriod::ThisYear),
-            _ => Err(ErrorKind::InvalidEnumVariant.into())
+            _ => Err(ErrorKind::InvalidEnumVariant.into()),
         }
     }
 }
@@ -73,7 +73,10 @@ impl Statistics {
     pub fn new(entries: Vec<Entry>, categories: Vec<Category>) -> Statistics {
         Statistics {
             entries,
-            categories: categories.into_iter().map(|c| (c.product, c.category)).collect(),
+            categories: categories
+                .into_iter()
+                .map(|c| (c.product, c.category))
+                .collect(),
             now: ::chrono::offset::Local::now().naive_local(),
         }
     }
@@ -81,7 +84,8 @@ impl Statistics {
     pub fn report(&self, period: TimePeriod) -> Result<Option<Report>, Error> {
         debug!("report for {:?}", &period);
         let (from, till) = self.period(period);
-        let entries_in_period: Vec<&Entry> = self.entries.iter()
+        let entries_in_period: Vec<&Entry> = self.entries
+            .iter()
             .filter(|e| e.time >= from && e.time <= till)
             .collect();
         if entries_in_period.is_empty() {
@@ -94,29 +98,36 @@ impl Statistics {
             total_spent,
             total_products: entries_in_period.len() as i32,
             by_category: self.by_category(&entries_in_period, total_spent)?,
-            stats: &self
+            stats: &self,
         }))
     }
 
-    fn by_category<'r>(&'r self, entries: &[&'r Entry], total_spent: i32) -> Result<Vec<ByCategory<'r>>, Error> {
+    fn by_category<'r>(
+        &'r self,
+        entries: &[&'r Entry],
+        total_spent: i32,
+    ) -> Result<Vec<ByCategory<'r>>, Error> {
         let mut categories: HashMap<&str, Vec<&Entry>> = HashMap::new();
 
         for entry in entries {
-            let category_name = self.categories.get(&entry.product.name)
-                                               .unwrap_or(&entry.product.name);
-            categories.entry(category_name).or_insert_with(|| Vec::new()).push(entry);
+            let category_name = self.categories
+                .get(&entry.product.name)
+                .unwrap_or(&entry.product.name);
+            categories
+                .entry(category_name)
+                .or_insert_with(|| Vec::new())
+                .push(entry);
         }
 
         let mut by_category = Vec::new();
         for (category, entries) in categories {
-            let (total_spent, total_products, persent) = 
-                Self::stats(&entries, total_spent)?;
+            let (total_spent, total_products, persent) = Self::stats(&entries, total_spent)?;
             by_category.push(ByCategory {
                 category,
                 entries,
                 total_spent,
                 total_products,
-                persent
+                persent,
             });
         }
 
@@ -156,25 +167,28 @@ impl Statistics {
     fn period(&self, period: TimePeriod) -> (NaiveDateTime, NaiveDateTime) {
         match period {
             TimePeriod::Today => (
-                self.now.date().and_time(start_of_day()), 
-                self.now.date().and_time(end_of_day())
+                self.now.date().and_time(start_of_day()),
+                self.now.date().and_time(end_of_day()),
             ),
             TimePeriod::ThisWeek => (
                 self.this_week(Weekday::Mon).and_time(start_of_day()),
-                self.this_week(Weekday::Sun).and_time(end_of_day())
+                self.this_week(Weekday::Sun).and_time(end_of_day()),
             ),
             TimePeriod::ThisMonth => (
-                self.now.date().with_day(1).unwrap().and_time(start_of_day()),
-                last_day_of_month(self.now.date()).and_time(end_of_day())
+                self.now
+                    .date()
+                    .with_day(1)
+                    .unwrap()
+                    .and_time(start_of_day()),
+                last_day_of_month(self.now.date()).and_time(end_of_day()),
             ),
             TimePeriod::ThisYear => (
                 NaiveDate::from_ymd(self.now.year(), 1, 1).and_time(start_of_day()),
-                NaiveDate::from_ymd(self.now.year() + 1, 1, 1).pred().and_time(end_of_day()),
+                NaiveDate::from_ymd(self.now.year() + 1, 1, 1)
+                    .pred()
+                    .and_time(end_of_day()),
             ),
-            TimePeriod::Any(from, to) => (
-                from.and_time(start_of_day()),
-                to.and_time(end_of_day())
-            )
+            TimePeriod::Any(from, to) => (from.and_time(start_of_day()), to.and_time(end_of_day())),
         }
     }
 
@@ -185,8 +199,7 @@ impl Statistics {
 
 fn subperiods(from: NaiveDate, to: NaiveDate) -> Option<Vec<(NaiveDate, NaiveDate)>> {
     debug!("{}, {}", from, to);
-    if (from.month0() >= to.month0() && from.year() == to.year()) ||
-       (from.year() > to.year()) {
+    if (from.month0() >= to.month0() && from.year() == to.year()) || (from.year() > to.year()) {
         return None;
     }
 
@@ -208,16 +221,28 @@ mod tests {
 
     #[test]
     fn correct_subperiods() {
-        assert_eq!(subperiods(
-            NaiveDate::from_ymd(2018, 1, 1), 
-            NaiveDate::from_ymd(2018, 1, 30)), 
-        None);
-        assert_eq!(subperiods(
-            NaiveDate::from_ymd(2018, 1, 1), 
-            NaiveDate::from_ymd(2018, 2, 28)), 
-        Some(vec![
-            (NaiveDate::from_ymd(2018, 1, 1), NaiveDate::from_ymd(2018, 1, 31)), 
-            (NaiveDate::from_ymd(2018, 2, 1), NaiveDate::from_ymd(2018, 2, 28))
-        ]));
+        assert_eq!(
+            subperiods(
+                NaiveDate::from_ymd(2018, 1, 1),
+                NaiveDate::from_ymd(2018, 1, 30)
+            ),
+            None
+        );
+        assert_eq!(
+            subperiods(
+                NaiveDate::from_ymd(2018, 1, 1),
+                NaiveDate::from_ymd(2018, 2, 28)
+            ),
+            Some(vec![
+                (
+                    NaiveDate::from_ymd(2018, 1, 1),
+                    NaiveDate::from_ymd(2018, 1, 31),
+                ),
+                (
+                    NaiveDate::from_ymd(2018, 2, 1),
+                    NaiveDate::from_ymd(2018, 2, 28),
+                ),
+            ])
+        );
     }
 }

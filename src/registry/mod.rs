@@ -1,24 +1,24 @@
-use serde::{Serialize};
+use serde::Serialize;
 use serde::de::DeserializeOwned;
 
 use std::path::PathBuf;
 use std::fmt::Debug;
 
-use accounting::{Entry, TelegramId, User, UserId, Category};
+use accounting::{Category, Entry, TelegramId, User, UserId};
 use accounting::statistics::Statistics;
 use error::{Error, ErrorKind};
 use persistence::{Migration, Table};
 
 mod table;
 
-use self::table::{RawEntry, RawUser, RawCategory};
+use self::table::{RawCategory, RawEntry, RawUser};
 
 #[derive(Debug)]
 pub struct Registry {
     path: PathBuf,
     entries: Table<RawEntry, Entry>,
     users: Table<RawUser, User>,
-    categories: Table<RawCategory, Category>
+    categories: Table<RawCategory, Category>,
 }
 
 impl Registry {
@@ -32,24 +32,25 @@ impl Registry {
         let users = table(path.clone(), "users")?;
         let categories = table(path.clone(), "categories")?;
 
-        Ok(Registry{
+        Ok(Registry {
             path,
             entries,
             users,
-            categories
+            categories,
         })
     }
 
     pub fn find_or_create(&self, telegram_id: TelegramId) -> Result<User, Error> {
         debug!("finding or creating user with {:?}", &telegram_id);
-        let users: Vec<User> = self.users.select(|user| user.telegram_id == Some(telegram_id))?;
+        let users: Vec<User> = self.users
+            .select(|user| user.telegram_id == Some(telegram_id))?;
         let user = match users.into_iter().next() {
             None => {
                 let new_user = User::with_telegram_id(telegram_id);
                 self.users.insert(new_user.clone())?;
                 new_user
-            },
-            Some(user) => user
+            }
+            Some(user) => user,
         };
         Ok(user)
     }
@@ -90,16 +91,25 @@ impl Registry {
         Ok(categories)
     }
 
-    pub fn add_category(&self, user: UserId, product_name: String, category_name: String) -> Result<(), Error> {
-        debug!("adding categories for {:?}: {} - {}", &user, &product_name, &category_name);
+    pub fn add_category(
+        &self,
+        user: UserId,
+        product_name: String,
+        category_name: String,
+    ) -> Result<(), Error> {
+        debug!(
+            "adding categories for {:?}: {} - {}",
+            &user, &product_name, &category_name
+        );
         let existing = self.categories(user.clone())?;
-        if let Some(existing) = existing.iter()
-            .filter(|c| c.product == product_name)
-            .next() {
-            return Err(ErrorKind::ProductAlreadyHasCategory(existing.product.to_owned(), existing.category.to_owned()).into());        
-        }  
+        if let Some(existing) = existing.iter().filter(|c| c.product == product_name).next() {
+            return Err(ErrorKind::ProductAlreadyHasCategory(
+                existing.product.to_owned(),
+                existing.category.to_owned(),
+            ).into());
+        }
         let new_category = Category::new(user, product_name, category_name);
-        self.categories.insert(new_category)?;      
+        self.categories.insert(new_category)?;
         Ok(())
     }
 
@@ -111,7 +121,10 @@ impl Registry {
     }
 }
 
-fn table<P: Serialize + DeserializeOwned + Debug + Into<R> + From<R>, R: Debug>(base_path: PathBuf, table_name: &str) -> Result<Table<P, R>, Error> {
+fn table<P: Serialize + DeserializeOwned + Debug + Into<R> + From<R>, R: Debug>(
+    base_path: PathBuf,
+    table_name: &str,
+) -> Result<Table<P, R>, Error> {
     let table: Table<P, R> = if ::persistence::exist_with_name(&base_path, table_name) {
         Table::load(base_path, table_name)?
     } else {

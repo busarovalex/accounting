@@ -4,7 +4,7 @@ use chrono::prelude::*;
 use std::str::FromStr;
 
 use super::evaluation::evaluate;
-use super::{UserId, Tags};
+use super::{Tags, UserId};
 
 #[derive(Debug)]
 pub struct Entry {
@@ -12,13 +12,13 @@ pub struct Entry {
     pub user_id: UserId,
     pub product: Product,
     pub time: NaiveDateTime,
-    pub tags: Tags
+    pub tags: Tags,
 }
 
 #[derive(Debug)]
 pub struct Product {
     pub name: String,
-    pub price: i32
+    pub price: i32,
 }
 
 #[derive(Debug)]
@@ -31,7 +31,7 @@ impl Entry {
             user_id,
             product,
             time: ::chrono::offset::Local::now().naive_local(),
-            tags: Tags::empty()
+            tags: Tags::empty(),
         }
     }
 }
@@ -51,9 +51,9 @@ impl FromStr for Product {
     fn from_str(raw: &str) -> Result<Self, Self::Err> {
         let (price, name) = price_name(raw)?;
 
-        Ok(Product{
+        Ok(Product {
             name: name.to_owned(),
-            price: evaluate(price).map_err(|e| format!("{:?}", e))?
+            price: evaluate(price).map_err(|e| format!("{:?}", e))?,
         })
     }
 }
@@ -64,18 +64,18 @@ fn price_name(raw: &str) -> Result<(&str, &str), String> {
     let mut split_index = 0;
     for (index, ch) in raw.char_indices() {
         let price_part = match ch {
-            '(' | ')' | ' '| '*' | '-' | '+' | '/' | '0'...'9' => true,
-            _ => false
+            '(' | ')' | ' ' | '*' | '-' | '+' | '/' | '0'...'9' => true,
+            _ => false,
         };
         match (price_part, price_first) {
             (true, None) => price_first = Some(true),
             (true, Some(false)) => {
                 split_index = index;
                 break;
-            },
-            (true, Some(true)) => {},
+            }
+            (true, Some(true)) => {}
             (false, None) => price_first = Some(false),
-            (false, Some(false)) => {},
+            (false, Some(false)) => {}
             (false, Some(true)) => {
                 split_index = index;
                 break;
@@ -83,14 +83,24 @@ fn price_name(raw: &str) -> Result<(&str, &str), String> {
         }
     }
 
-    let (price, name) = match price_first {
-        None => return Err("В строке должны быть указаны продукт и цена".to_owned()),
-        Some(true) => raw.split_at(split_index),
-        Some(false) => { let (name, price) = raw.split_at(split_index); (price, name)}
-    };
+    let (price, name) =
+        match price_first {
+            None => return Err(
+                "В строке должны быть указаны продукт и цена"
+                    .to_owned(),
+            ),
+            Some(true) => raw.split_at(split_index),
+            Some(false) => {
+                let (name, price) = raw.split_at(split_index);
+                (price, name)
+            }
+        };
 
     if name.is_empty() {
-        return Err("В строке должны быть указаны продукт и цена".to_owned());
+        return Err(
+            "В строке должны быть указаны продукт и цена"
+                .to_owned(),
+        );
     }
 
     Ok((price, name))

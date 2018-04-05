@@ -1,6 +1,6 @@
 use uuid::Uuid;
 
-use super::{UserId};
+use super::UserId;
 
 #[derive(Debug)]
 pub struct CategoryId(pub String);
@@ -10,7 +10,7 @@ pub struct Category {
     pub id: CategoryId,
     pub user_id: UserId,
     pub product: String,
-    pub category: String
+    pub category: String,
 }
 
 impl Category {
@@ -19,7 +19,7 @@ impl Category {
             id: CategoryId::generate(),
             user_id,
             product,
-            category
+            category,
         }
     }
 }

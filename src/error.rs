@@ -19,6 +19,10 @@ error_chain!{
     }
 
     errors {
+        NotImplementedYet {
+            description("Not implemented yet")
+            display("Эта функция пока не реализована")
+        }
         InvalidRegistryPath(used_path: PathBuf) {
             description("An error occurred during registry work")
             display("data path {:?} is not a directory", used_path)
@@ -29,19 +33,19 @@ error_chain!{
         }
         ProductAlreadyHasCategory(product: String, category: String) {
             description("product already has a category")
-            display("product \"{}\" already has a category:\"{}\"", product, category)   
+            display("product \"{}\" already has a category:\"{}\"", product, category)
         }
         Calculation(reason: String) {
             description("error during calculation")
-            display("Error during calculation: {}", reason)   
+            display("Error during calculation: {}", reason)
         }
         InvalidEnumVariant {
             description("invalid enum variant")
-            display("invalid enum variant was provided")   
+            display("invalid enum variant was provided")
         }
         NoDataForPeriod {
             description("no data for report in this period")
-            display("no data for report in this period")   
+            display("no data for report in this period")
         }
         InvalidDate {
             description("invalid date provided")
@@ -53,7 +57,7 @@ error_chain!{
         }
         BotUsage(reason: String){
             description("wrong bot usage")
-            display("Неверное использование бота: {}", reason)   
+            display("Неверное использование бота: {}", reason)
         }
     }
 }

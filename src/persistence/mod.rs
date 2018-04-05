@@ -1,4 +1,4 @@
-use serde::{Serialize};
+use serde::Serialize;
 use serde::de::DeserializeOwned;
 
 use std::path::{Path, PathBuf};
@@ -11,7 +11,7 @@ use std::fmt::Debug;
 pub mod error;
 mod migrate;
 
-pub use self::migrate::{Migration};
+pub use self::migrate::Migration;
 use self::error::{Error, ErrorKind};
 
 #[derive(Debug)]
@@ -19,7 +19,7 @@ pub struct Table<P: Serialize + DeserializeOwned + Debug + Into<R> + From<R>, R:
     name: String,
     base_path: PathBuf,
     p_: PhantomData<P>,
-    r_: PhantomData<R>
+    r_: PhantomData<R>,
 }
 
 pub fn exist_with_name<P: Into<PathBuf>, S: Into<String>>(path: P, name: S) -> bool {
@@ -30,7 +30,10 @@ pub fn exist_with_name<P: Into<PathBuf>, S: Into<String>>(path: P, name: S) -> b
 }
 
 impl<P: Serialize + DeserializeOwned + Debug + Into<R> + From<R>, R: Debug> Table<P, R> {
-    pub fn create<T: Into<PathBuf>, S: Into<String>>(path: T, name: S) -> Result<Table<P, R>, Error> {
+    pub fn create<T: Into<PathBuf>, S: Into<String>>(
+        path: T,
+        name: S,
+    ) -> Result<Table<P, R>, Error> {
         let base_path = path.into();
         let name = name.into();
         info!("creating new table \"{}\" at {:?}", &name, &base_path);
@@ -50,11 +53,11 @@ impl<P: Serialize + DeserializeOwned + Debug + Into<R> + From<R>, R: Debug> Tabl
 
         let _ = File::create(full_path)?;
 
-        Ok(Table{
+        Ok(Table {
             name,
             base_path,
             p_: PhantomData,
-            r_: PhantomData
+            r_: PhantomData,
         })
     }
 
@@ -62,15 +65,15 @@ impl<P: Serialize + DeserializeOwned + Debug + Into<R> + From<R>, R: Debug> Tabl
         let base_path = path.into();
         let name = name.into();
         info!("loading existing table \"{}\" at {:?}", &name, &base_path);
-        Ok(Table{
+        Ok(Table {
             name: name,
             base_path,
             p_: PhantomData,
-            r_: PhantomData
+            r_: PhantomData,
         })
     }
 
-    pub fn select<F: Fn(&R)->bool >(&self, predicate: F) -> Result<Vec<R>, Error> {
+    pub fn select<F: Fn(&R) -> bool>(&self, predicate: F) -> Result<Vec<R>, Error> {
         debug!("selecting data");
         let mut file = self.file_read()?;
         let mut content = String::with_capacity(2048);
@@ -96,7 +99,11 @@ impl<P: Serialize + DeserializeOwned + Debug + Into<R> + From<R>, R: Debug> Tabl
         Ok(())
     }
 
-    pub fn update<F: Fn(&R)->bool, T: Fn(&mut R)>(&self, predicate: F, transformer: T) -> Result<(), Error> {
+    pub fn update<F: Fn(&R) -> bool, T: Fn(&mut R)>(
+        &self,
+        predicate: F,
+        transformer: T,
+    ) -> Result<(), Error> {
         debug!("updating data");
         let original_entries = self.select(|_| true)?;
         let mut updated_entries = Vec::new();
@@ -115,20 +122,16 @@ impl<P: Serialize + DeserializeOwned + Debug + Into<R> + From<R>, R: Debug> Tabl
 
     fn file_read(&self) -> Result<File, Error> {
         let full_path = self.table_path();
-        
-        let file = OpenOptions::new()
-            .read(true)
-            .open(full_path)?;     
+
+        let file = OpenOptions::new().read(true).open(full_path)?;
 
         Ok(file)
     }
 
     fn file_append(&self) -> Result<File, Error> {
         let full_path = self.table_path();
-        
-        let file = OpenOptions::new()
-            .append(true)
-            .open(full_path)?;     
+
+        let file = OpenOptions::new().append(true).open(full_path)?;
 
         Ok(file)
     }
