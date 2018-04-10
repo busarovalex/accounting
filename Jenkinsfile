@@ -6,5 +6,10 @@ pipeline {
                 sh 'cargo build' 
             }
         }
+        stage('Test') { 
+            steps {
+                sh 'cargo test' 
+            }
+        }
     }
 }
