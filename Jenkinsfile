@@ -11,5 +11,10 @@ pipeline {
                 sh 'cargo test' 
             }
         }
+        stage('Release build') { 
+            steps {
+                sh 'cargo build --release' 
+            }
+        }
     }
 }
