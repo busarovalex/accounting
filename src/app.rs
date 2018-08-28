@@ -231,6 +231,7 @@ fn entry(matches: &ArgMatches) -> EntryCmd {
     } else if matches.is_present("list") {
         EntryCmd::List
     } else {
+        panic!();
         unreachable!()
     }
 }
