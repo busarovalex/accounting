@@ -13,7 +13,7 @@ pipeline {
         }
         stage('Release build') { 
             steps {
-                sh 'docker run --rm --network host -it -v "$(pwd)":/home/rust/src ekidd/rust-musl-builder cargo build --release'
+                sh 'docker run --rm --network host -v "$(pwd)":/home/rust/src ekidd/rust-musl-builder cargo build --release'
             }
         }
         stage('Create docker image') {
