@@ -4,8 +4,8 @@ use std::collections::HashMap;
 use std::str::FromStr;
 
 use super::{Category, Entry};
-use error::{Error, ErrorKind};
 use dates::{end_of_day, last_day_of_month, start_of_day};
+use error::{Error, ErrorKind};
 
 #[derive(Debug)]
 pub struct Statistics {
@@ -84,7 +84,8 @@ impl Statistics {
     pub fn report(&self, period: TimePeriod) -> Result<Option<Report>, Error> {
         debug!("report for {:?}", &period);
         let (from, till) = self.period(period);
-        let entries_in_period: Vec<&Entry> = self.entries
+        let entries_in_period: Vec<&Entry> = self
+            .entries
             .iter()
             .filter(|e| e.time >= from && e.time <= till)
             .collect();
@@ -110,7 +111,8 @@ impl Statistics {
         let mut categories: HashMap<&str, Vec<&Entry>> = HashMap::new();
 
         for entry in entries {
-            let category_name = self.categories
+            let category_name = self
+                .categories
                 .get(&entry.product.name)
                 .unwrap_or(&entry.product.name);
             categories

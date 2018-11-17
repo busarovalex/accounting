@@ -1,20 +1,55 @@
-use futures::Stream;
-use tokio_core::reactor::Core;
-use telegram_bot::*;
 use chrono::prelude::*;
+use futures::Stream;
+use telegram_bot::*;
+use tokio_core::reactor::Core;
 
 use std::env;
 
-use registry::Registry;
+use self::app::App;
 use accounting::TelegramId;
+use config::Config;
 use error::Error as AppError;
 use error::ErrorKind;
-use config::Config;
+use registry::Registry;
 
+mod app;
+mod category;
+mod email;
 mod handler;
 mod report;
-mod email;
-mod category;
+
+pub fn start() {
+    let app = match App::from_args() {
+        Ok(app) => app,
+        Err(err) => {
+            error!("{}", err);
+            println!("{}", err);
+            ::std::process::exit(1);
+        }
+    };
+    info!("{:?}", &app);
+
+    match start_bot(app) {
+        Err(err) => {
+            error!("{}", err);
+            println!("{}", err);
+            ::std::process::exit(1);
+        }
+        Ok(_) => {}
+    };
+}
+
+fn start_bot(app: App) -> Result<(), AppError> {
+    let config = crate::config::config(&app.config_path)?;
+    let config_without_passwords = crate::config::Config {
+        email_smtp_credential_password: None,
+        ..config.clone()
+    };
+    info!("config: {:?}", &config_without_passwords);
+    let registry = Registry::new(config.data_path.clone().into())?;
+    info!("registry created");
+    BotLauncher::new(registry, config).start()
+}
 
 pub struct BotLauncher {
     registry: Registry,
@@ -80,7 +115,8 @@ impl BotLauncher {
                     trace!("{:?}", &message);
                     trace!("<{}>: {}", &message.from.first_name, data);
 
-                    let user = self.registry
+                    let user = self
+                        .registry
                         .find_or_create(TelegramId(i64::from(message.from.id)))
                         .map_err(|e| format!("{:?}", e))?;
 

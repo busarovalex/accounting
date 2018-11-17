@@ -1,11 +1,11 @@
-use clap::{Arg, ArgMatches, SubCommand};
 use clap;
+use clap::{Arg, ArgMatches, SubCommand};
 
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use error::Error;
 use accounting::statistics::TimePeriod;
+use error::Error;
 
 #[derive(Debug)]
 pub struct App {
@@ -16,7 +16,6 @@ pub struct App {
 #[derive(Debug)]
 pub enum Command {
     Entry(EntryCmd),
-    Bot,
     Migrate(MigrateCmd),
     User(UserCmd),
     Category(CategoryCmd),
@@ -60,8 +59,7 @@ impl App {
                     .value_name("FILE")
                     .help("Sets a custom config file")
                     .takes_value(true),
-            )
-            .subcommand(
+            ).subcommand(
                 SubCommand::with_name("entry")
                     .about("controls accounting entries")
                     .arg(
@@ -73,8 +71,7 @@ impl App {
                             .takes_value(true)
                             .conflicts_with("list")
                             .required_unless_one(&["list"]),
-                    )
-                    .arg(
+                    ).arg(
                         Arg::with_name("list")
                             .short("l")
                             .long("list")
@@ -82,9 +79,7 @@ impl App {
                             .conflicts_with("add")
                             .required_unless_one(&["add"]),
                     ),
-            )
-            .subcommand(SubCommand::with_name("bot").about("launches telegram bot"))
-            .subcommand(
+            ).subcommand(
                 SubCommand::with_name("migrate")
                     .about("controls entries migration")
                     .arg(
@@ -97,8 +92,7 @@ impl App {
                             .takes_value(true)
                             .conflicts_with_all(&["remove", "generate"])
                             .required_unless_one(&["remove", "generate"]),
-                    )
-                    .arg(
+                    ).arg(
                         Arg::with_name("remove")
                             .short("r")
                             .long("remove")
@@ -107,8 +101,7 @@ impl App {
                             .takes_value(true)
                             .conflicts_with_all(&["add", "generate"])
                             .required_unless_one(&["add", "generate"]),
-                    )
-                    .arg(
+                    ).arg(
                         Arg::with_name("generate")
                             .short("g")
                             .long("generate")
@@ -118,8 +111,7 @@ impl App {
                             .conflicts_with_all(&["add", "remove"])
                             .required_unless_one(&["add", "remove"]),
                     ),
-            )
-            .subcommand(
+            ).subcommand(
                 SubCommand::with_name("user")
                     .about("controls users")
                     .arg(
@@ -129,8 +121,7 @@ impl App {
                             .help("lists all users")
                             .conflicts_with_all(&["add", "timezone"])
                             .required_unless_one(&["add", "timezone"]),
-                    )
-                    .arg(
+                    ).arg(
                         Arg::with_name("add")
                             .short("a")
                             .long("add")
@@ -139,8 +130,7 @@ impl App {
                             .takes_value(true)
                             .conflicts_with_all(&["list", "timezone"])
                             .required_unless_one(&["list", "timezone"]),
-                    )
-                    .arg(
+                    ).arg(
                         Arg::with_name("timezone")
                             .short("t")
                             .long("timezone")
@@ -150,8 +140,7 @@ impl App {
                             .conflicts_with_all(&["list", "add"])
                             .required_unless_one(&["list", "add"]),
                     ),
-            )
-            .subcommand(
+            ).subcommand(
                 SubCommand::with_name("category")
                     .about("controls categories")
                     .arg(
@@ -161,8 +150,7 @@ impl App {
                             .help("lists all categories")
                             .conflicts_with("add")
                             .required_unless_one(&["add"]),
-                    )
-                    .arg(
+                    ).arg(
                         Arg::with_name("add")
                             .short("a")
                             .long("add")
@@ -173,8 +161,7 @@ impl App {
                             .conflicts_with("list")
                             .required_unless_one(&["list"]),
                     ),
-            )
-            .subcommand(
+            ).subcommand(
                 SubCommand::with_name("report")
                     .about("generate a report")
                     .arg(
@@ -184,23 +171,19 @@ impl App {
                             .help("selects a time period")
                             .takes_value(true)
                             .possible_values(&["day", "week", "month", "year"]),
-                    )
-                    .arg(
+                    ).arg(
                         Arg::with_name("html")
                             .short("h")
                             .long("html")
                             .help("prints html representation"),
                     ),
-            )
-            .get_matches();
+            ).get_matches();
 
         let config_path = matches.value_of("config").map(PathBuf::from);
 
         let command = {
             if let Some(entry_matches) = matches.subcommand_matches("entry") {
                 Command::Entry(entry(entry_matches))
-            } else if let Some(_) = matches.subcommand_matches("bot") {
-                Command::Bot
             } else if let Some(migrate_matches) = matches.subcommand_matches("migrate") {
                 Command::Migrate(migrate(migrate_matches))
             } else if let Some(user_matches) = matches.subcommand_matches("user") {
@@ -231,7 +214,6 @@ fn entry(matches: &ArgMatches) -> EntryCmd {
     } else if matches.is_present("list") {
         EntryCmd::List
     } else {
-        panic!();
         unreachable!()
     }
 }

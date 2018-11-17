@@ -1,11 +1,11 @@
-use serde::Serialize;
 use serde::de::DeserializeOwned;
+use serde::Serialize;
 
-use std::path::PathBuf;
 use std::fmt::Debug;
+use std::path::PathBuf;
 
-use accounting::{Category, Entry, TelegramId, User, UserId};
 use accounting::statistics::Statistics;
+use accounting::{Category, Entry, TelegramId, User, UserId};
 use error::{Error, ErrorKind};
 use persistence::{Migration, Table};
 
@@ -42,7 +42,8 @@ impl Registry {
 
     pub fn find_or_create(&self, telegram_id: TelegramId) -> Result<User, Error> {
         debug!("finding or creating user with {:?}", &telegram_id);
-        let users: Vec<User> = self.users
+        let users: Vec<User> = self
+            .users
             .select(|user| user.telegram_id == Some(telegram_id))?;
         let user = match users.into_iter().next() {
             None => {

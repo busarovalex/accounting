@@ -2,8 +2,8 @@ use chrono::prelude::*;
 
 use std::fmt;
 
-use accounting::statistics::Report as DomainReport;
 use accounting::statistics::ByCategory;
+use accounting::statistics::Report as DomainReport;
 use accounting::Entry as DomainEntry;
 
 #[derive(Debug)]

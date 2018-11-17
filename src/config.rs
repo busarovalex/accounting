@@ -1,8 +1,7 @@
-use std::path::PathBuf;
-use std::io::Read;
 use std::fs::File;
+use std::io::Read;
+use std::path::PathBuf;
 
-use app::App;
 use error::Error;
 
 #[derive(Debug, Deserialize, Clone)]
@@ -17,11 +16,8 @@ pub struct Config {
     pub email_smtp_credential_password: Option<String>,
 }
 
-pub fn config(app: &App) -> Result<Config, Error> {
-    let config_path: PathBuf = app.config_path
-        .clone()
-        .unwrap_or("./config.yml".into())
-        .into();
+pub fn config(config_path: &Option<PathBuf>) -> Result<Config, Error> {
+    let config_path: PathBuf = config_path.clone().unwrap_or("./config.yml".into());
     let mut file = File::open(config_path)?;
     let mut content = String::new();
     file.read_to_string(&mut content)?;

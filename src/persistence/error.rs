@@ -1,7 +1,7 @@
 use serde_json;
 
-use std::path::PathBuf;
 use std::io;
+use std::path::PathBuf;
 
 error_chain!{
     foreign_links {

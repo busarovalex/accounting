@@ -1,8 +1,12 @@
-use registry::Registry;
 use accounting::UserId;
-use error::{ErrorKind, Error};
+use error::{Error, ErrorKind};
+use registry::Registry;
 
-pub fn category<'a, I>(_commands: &mut I, _registry: &Registry, _user: UserId) -> Result<String, Error>
+pub fn category<'a, I>(
+    _commands: &mut I,
+    _registry: &Registry,
+    _user: UserId,
+) -> Result<String, Error>
 where
     I: Iterator<Item = &'a str>,
 {

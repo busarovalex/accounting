@@ -1,18 +1,18 @@
-use serde::Serialize;
 use serde::de::DeserializeOwned;
+use serde::Serialize;
 
-use std::path::{Path, PathBuf};
-use std::marker::PhantomData;
+use std::fmt::Debug;
 use std::fs;
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
-use std::fmt::Debug;
+use std::marker::PhantomData;
+use std::path::{Path, PathBuf};
 
 pub mod error;
 mod migrate;
 
-pub use self::migrate::Migration;
 use self::error::{Error, ErrorKind};
+pub use self::migrate::Migration;
 
 #[derive(Debug)]
 pub struct Table<P: Serialize + DeserializeOwned + Debug + Into<R> + From<R>, R: Debug> {

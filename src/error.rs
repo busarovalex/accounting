@@ -1,12 +1,12 @@
 use serde_yaml;
 
-use std::path::PathBuf;
 use std::io;
 use std::num::ParseIntError;
+use std::path::PathBuf;
 
-use persistence;
-use lettre_email::error::Error as EmailError;
 use lettre::smtp::error::Error as SmtpError;
+use lettre_email::error::Error as EmailError;
+use persistence;
 
 error_chain!{
     foreign_links {

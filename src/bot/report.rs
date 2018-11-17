@@ -2,12 +2,12 @@ use chrono::prelude::*;
 
 use std::str::FromStr;
 
-use registry::Registry;
-use accounting::UserId;
 use accounting::statistics::{Statistics, TimePeriod};
-use error::{Error, ErrorKind};
+use accounting::UserId;
 use bot::email::EmailSender;
 use config::Config;
+use error::{Error, ErrorKind};
+use registry::Registry;
 
 pub fn report<'a, I>(
     commands: &mut I,

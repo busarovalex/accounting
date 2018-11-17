@@ -1,10 +1,10 @@
 use std::str::FromStr;
 
-use registry::Registry;
-use accounting::{Entry, Product};
 use accounting::UserId;
-use error::Error;
+use accounting::{Entry, Product};
 use config::Config;
+use error::Error;
+use registry::Registry;
 
 pub fn handle(
     data: &str,

@@ -1,7 +1,8 @@
 use chrono::prelude::*;
 
-use accounting::{Category, CategoryId, Entry, EntryId, Product, Tag, Tags, TelegramId, User,
-                 UserId};
+use accounting::{
+    Category, CategoryId, Entry, EntryId, Product, Tag, Tags, TelegramId, User, UserId,
+};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct RawEntry {

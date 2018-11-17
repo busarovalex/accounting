@@ -1,10 +1,10 @@
-use lettre::EmailTransport;
-use lettre_email::{EmailBuilder, MimeMessage, PartBuilder};
 use lettre::smtp;
 use lettre::smtp::authentication::Credentials;
+use lettre::EmailTransport;
+use lettre_email::{EmailBuilder, MimeMessage, PartBuilder};
 
-use error::{Error, ErrorKind};
 use config::Config;
+use error::{Error, ErrorKind};
 
 pub struct EmailSender {
     from: String,
@@ -53,8 +53,7 @@ impl EmailSender {
             .credentials(Credentials::new(
                 self.username.clone(),
                 self.password.clone(),
-            ))
-            .build();
+            )).build();
 
         trace!("sending email");
 
@@ -71,8 +70,7 @@ fn child(data: String) -> MimeMessage {
         .header((
             "Content-Disposition",
             format!("attachment; filename=\"Отчет.html\""),
-        ))
-        .header(("Content-Type", ::mime::TEXT_HTML.to_string()))
+        )).header(("Content-Type", ::mime::TEXT_HTML.to_string()))
         .header(("Content-Transfer-Encoding", "base64"))
         .build()
 }
