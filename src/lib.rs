@@ -6,7 +6,9 @@ extern crate chrono;
 extern crate clap;
 extern crate env_logger;
 #[macro_use]
-extern crate error_chain;
+extern crate failure;
+#[macro_use]
+extern crate failure_derive;
 extern crate futures;
 extern crate lettre;
 extern crate lettre_email;
@@ -16,6 +18,8 @@ extern crate mime;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+extern crate actix;
+extern crate actix_web;
 extern crate serde_json;
 extern crate serde_yaml;
 extern crate telegram_bot;

@@ -1,11 +1,12 @@
 use chrono::prelude::*;
+use failure::Error as FailureError;
 
 use std::collections::HashMap;
 use std::str::FromStr;
 
 use super::{Category, Entry};
 use dates::{end_of_day, last_day_of_month, start_of_day};
-use error::{Error, ErrorKind};
+use error::AppError;
 
 #[derive(Debug)]
 pub struct Statistics {
@@ -42,20 +43,30 @@ pub enum TimePeriod {
 }
 
 impl FromStr for TimePeriod {
-    type Err = Error;
+    type Err = FailureError;
     fn from_str(raw: &str) -> Result<Self, Self::Err> {
-        match raw {
-            "day" => Ok(TimePeriod::Today),
-            "week" => Ok(TimePeriod::ThisWeek),
-            "month" => Ok(TimePeriod::ThisMonth),
-            "year" => Ok(TimePeriod::ThisYear),
-            _ => Err(ErrorKind::InvalidEnumVariant.into()),
+        let mut split = raw.split('-');
+        let (dimension, value) = (split.next(), split.next());
+        match (dimension, value) {
+            (Some("day"), None) => Ok(TimePeriod::Today),
+            (Some("week"), None) => Ok(TimePeriod::ThisWeek),
+            (Some("month"), None) => Ok(TimePeriod::ThisMonth),
+            (Some("year"), None) => Ok(TimePeriod::ThisYear),
+            (Some("year"), Some(year_number)) => parse_year(year_number),
+            _ => Err(AppError::InvalidEnumVariant.into()),
         }
     }
 }
 
+fn parse_year(year_number: &str) -> Result<TimePeriod, FailureError> {
+    let year:  i32 = year_number.parse()?;
+    let start = NaiveDate::from_yo(year, 1);
+    let end = NaiveDate::from_yo(year + 1, 1).pred();
+    Ok(TimePeriod::Any(start, end))
+}
+
 impl<'r> Report<'r> {
-    pub fn subreports(&self) -> Result<Option<Vec<Report<'r>>>, Error> {
+    pub fn subreports(&self) -> Result<Option<Vec<Report<'r>>>, FailureError> {
         if let Some(periods) = subperiods(self.period.0.date(), self.period.1.date()) {
             let mut subreports = Vec::new();
             for (from, to) in periods {
@@ -81,7 +92,7 @@ impl Statistics {
         }
     }
 
-    pub fn report(&self, period: TimePeriod) -> Result<Option<Report>, Error> {
+    pub fn report(&self, period: TimePeriod) -> Result<Option<Report>, FailureError> {
         debug!("report for {:?}", &period);
         let (from, till) = self.period(period);
         let entries_in_period: Vec<&Entry> = self
@@ -107,7 +118,7 @@ impl Statistics {
         &'r self,
         entries: &[&'r Entry],
         total_spent: i32,
-    ) -> Result<Vec<ByCategory<'r>>, Error> {
+    ) -> Result<Vec<ByCategory<'r>>, FailureError> {
         let mut categories: HashMap<&str, Vec<&Entry>> = HashMap::new();
 
         for entry in entries {
@@ -139,14 +150,16 @@ impl Statistics {
         Ok(by_category)
     }
 
-    fn stats(entries: &[&Entry], all_total_spent: i32) -> Result<(i32, i32, f32), Error> {
+    fn stats(entries: &[&Entry], all_total_spent: i32) -> Result<(i32, i32, f32), FailureError> {
         let mut total_spent = 0i32;
 
         for entry in entries {
             if let Some(sum) = total_spent.checked_add(entry.product.price) {
                 total_spent = sum;
             } else {
-                return Err(ErrorKind::Calculation("Overflow".to_owned()).into());
+                return Err(AppError::Calculation {
+                    reason: "Overflow".to_owned(),
+                }.into());
             }
         }
         let persent = total_spent as f32 / all_total_spent as f32 * 100.;
@@ -154,13 +167,15 @@ impl Statistics {
         Ok((total_spent, entries.len() as i32, persent))
     }
 
-    fn total_spent(entries: &[&Entry]) -> Result<i32, Error> {
+    fn total_spent(entries: &[&Entry]) -> Result<i32, FailureError> {
         let mut total = 0i32;
         for price in entries.iter().map(|e| e.product.price) {
             if let Some(sum) = total.checked_add(price) {
                 total = sum;
             } else {
-                return Err(ErrorKind::Calculation("Overflow".to_owned()).into());
+                return Err(AppError::Calculation {
+                    reason: "Overflow".to_owned(),
+                }.into());
             }
         }
         Ok(total)

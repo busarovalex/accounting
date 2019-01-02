@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
 
-use error::Error;
+use failure::Error as FailureError;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Config {
@@ -16,7 +16,7 @@ pub struct Config {
     pub email_smtp_credential_password: Option<String>,
 }
 
-pub fn config(config_path: &Option<PathBuf>) -> Result<Config, Error> {
+pub fn config(config_path: &Option<PathBuf>) -> Result<Config, FailureError> {
     let config_path: PathBuf = config_path.clone().unwrap_or("./config.yml".into());
     let mut file = File::open(config_path)?;
     let mut content = String::new();

@@ -1,8 +1,14 @@
-#[derive(Debug, PartialEq)]
+use failure::Error as FailureError;
+
+#[derive(Debug, PartialEq, Fail)]
 pub enum Error {
-    InvalidCharacter(char),
+    #[fail(display = "Invalid character {}", ch)]
+    InvalidCharacter { ch: char },
+    #[fail(display = "Evaluation error")]
     Evaluation,
+    #[fail(display = "Overflow error")]
     Overflow,
+    #[fail(display = "Unbalanced parentheses")]
     UnbalancedParentheses,
 }
 
@@ -37,13 +43,13 @@ struct Evaluator {
     instructions: Vec<Instruction>,
 }
 
-pub fn evaluate(input: &str) -> Result<i32, Error> {
+pub fn evaluate(input: &str) -> Result<i32, FailureError> {
     let tokens = tokens(input)?;
     let stack = stack(tokens)?;
     Evaluator::new(stack).evaluate()
 }
 
-fn stack(tokens: Vec<Token>) -> Result<Vec<Instruction>, Error> {
+fn stack(tokens: Vec<Token>) -> Result<Vec<Instruction>, FailureError> {
     let mut instructions = Vec::new();
     let mut stack = Vec::new();
     for token in tokens {
@@ -87,7 +93,7 @@ fn stack(tokens: Vec<Token>) -> Result<Vec<Instruction>, Error> {
     }
     while let Some(token) = stack.pop() {
         match token {
-            Token::OpenBracket => return Err(Error::UnbalancedParentheses),
+            Token::OpenBracket => return Err(Error::UnbalancedParentheses.into()),
             Token::Number(value) => instructions.push(Instruction::Number(value)),
             Token::Operation(value) => instructions.push(Instruction::Operation(value)),
             _ => unreachable!(),
@@ -96,7 +102,7 @@ fn stack(tokens: Vec<Token>) -> Result<Vec<Instruction>, Error> {
     Ok(instructions)
 }
 
-fn tokens(input: &str) -> Result<Vec<Token>, Error> {
+fn tokens(input: &str) -> Result<Vec<Token>, FailureError> {
     let mut tokens = Vec::new();
     let mut token_builder = TokenBuilder::new();
     for ch in input.chars() {
@@ -109,7 +115,7 @@ fn tokens(input: &str) -> Result<Vec<Token>, Error> {
             '(' => token_builder.push_token(Token::OpenBracket),
             ')' => token_builder.push_token(Token::CloseBracket),
             ' ' => None,
-            invalid_char @ _ => return Err(Error::InvalidCharacter(invalid_char)),
+            invalid_char @ _ => return Err(Error::InvalidCharacter { ch: invalid_char }.into()),
         } {
             tokens.push(next_token);
         }
@@ -127,7 +133,7 @@ impl Evaluator {
         Evaluator { instructions }
     }
 
-    fn evaluate(&mut self) -> Result<i32, Error> {
+    fn evaluate(&mut self) -> Result<i32, FailureError> {
         let mut stack = Vec::new();
         for instruction in &self.instructions {
             match *instruction {
@@ -137,7 +143,7 @@ impl Evaluator {
                         let operation_result = operation.apply(left_operand, right_operand)?;
                         stack.push(operation_result);
                     } else {
-                        return Err(Error::Evaluation);
+                        return Err(Error::Evaluation.into());
                     }
                 }
             }
@@ -145,18 +151,18 @@ impl Evaluator {
         let last_value = stack.pop();
         match (last_value, stack.is_empty()) {
             (Some(result), true) => Ok(result),
-            _ => Err(Error::Evaluation),
+            _ => Err(Error::Evaluation.into()),
         }
     }
 }
 
 impl Operation {
-    fn apply(self, left: i32, right: i32) -> Result<i32, Error> {
+    fn apply(self, left: i32, right: i32) -> Result<i32, FailureError> {
         match self {
-            Operation::Add => left.checked_add(right).ok_or(Error::Overflow),
-            Operation::Mul => left.checked_mul(right).ok_or(Error::Overflow),
-            Operation::Sub => left.checked_sub(right).ok_or(Error::Overflow),
-            Operation::Div => left.checked_div(right).ok_or(Error::Overflow),
+            Operation::Add => left.checked_add(right).ok_or(Error::Overflow.into()),
+            Operation::Mul => left.checked_mul(right).ok_or(Error::Overflow.into()),
+            Operation::Sub => left.checked_sub(right).ok_or(Error::Overflow.into()),
+            Operation::Div => left.checked_div(right).ok_or(Error::Overflow.into()),
         }
     }
 
@@ -177,7 +183,7 @@ impl TokenBuilder {
         }
     }
 
-    fn push_number(&mut self, number: i32) -> Result<Option<Token>, Error> {
+    fn push_number(&mut self, number: i32) -> Result<Option<Token>, FailureError> {
         assert!(number < 10 && number >= 0);
         if let &mut Some(Token::Number(ref mut value)) = &mut self.current_token {
             *value = value

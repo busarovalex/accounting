@@ -1,10 +1,11 @@
+use failure::Error as FailureError;
 use lettre::smtp;
 use lettre::smtp::authentication::Credentials;
 use lettre::EmailTransport;
 use lettre_email::{EmailBuilder, MimeMessage, PartBuilder};
 
 use config::Config;
-use error::{Error, ErrorKind};
+use error::AppError;
 
 pub struct EmailSender {
     from: String,
@@ -14,7 +15,7 @@ pub struct EmailSender {
 }
 
 impl EmailSender {
-    pub fn from_config(config: &Config) -> Result<EmailSender, Error> {
+    pub fn from_config(config: &Config) -> Result<EmailSender, FailureError> {
         let from = config.email_from.clone().ok_or(not_set_up("email_from"))?;
         let host = config
             .email_smtp_host
@@ -36,7 +37,7 @@ impl EmailSender {
         })
     }
 
-    pub fn send(&self, data: String, email: &str) -> Result<(), Error> {
+    pub fn send(&self, data: String, email: &str) -> Result<(), FailureError> {
         debug!("sendign email to \"{}\"", email);
 
         let mut email = EmailBuilder::new()
@@ -75,6 +76,8 @@ fn child(data: String) -> MimeMessage {
         .build()
 }
 
-fn not_set_up(property: &str) -> Error {
-    ErrorKind::EmailNotSetUp(property.to_owned()).into()
+fn not_set_up(property: &str) -> FailureError {
+    AppError::EmailNotSetUp {
+        property: property.to_owned(),
+    }.into()
 }

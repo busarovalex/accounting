@@ -1,10 +1,11 @@
 use chrono::prelude::*;
-use uuid::Uuid;
+use failure::Error as FailureError;
 
 use std::str::FromStr;
 
 use super::evaluation::evaluate;
-use super::{Tags, UserId};
+use super::{EntryId, Tags, UserId};
+use error::AppError;
 
 #[derive(Debug)]
 pub struct Entry {
@@ -21,9 +22,6 @@ pub struct Product {
     pub price: i32,
 }
 
-#[derive(Debug)]
-pub struct EntryId(pub String);
-
 impl Entry {
     pub fn new(user_id: UserId, product: Product) -> Entry {
         Entry {
@@ -36,29 +34,19 @@ impl Entry {
     }
 }
 
-impl EntryId {
-    pub fn new(value: String) -> Self {
-        EntryId(value)
-    }
-
-    fn generate() -> Self {
-        EntryId(format!("{}", Uuid::new_v4()))
-    }
-}
-
 impl FromStr for Product {
-    type Err = String;
+    type Err = FailureError;
     fn from_str(raw: &str) -> Result<Self, Self::Err> {
         let (price, name) = price_name(raw)?;
 
         Ok(Product {
             name: name.to_owned(),
-            price: evaluate(price).map_err(|e| format!("{:?}", e))?,
+            price: evaluate(price)?,
         })
     }
 }
 
-fn price_name(raw: &str) -> Result<(&str, &str), String> {
+fn price_name(raw: &str) -> Result<(&str, &str), FailureError> {
     let raw = raw.trim();
     let mut price_first = None;
     let mut split_index = 0;
@@ -83,24 +71,21 @@ fn price_name(raw: &str) -> Result<(&str, &str), String> {
         }
     }
 
-    let (price, name) =
-        match price_first {
-            None => return Err(
-                "В строке должны быть указаны продукт и цена"
-                    .to_owned(),
-            ),
-            Some(true) => raw.split_at(split_index),
-            Some(false) => {
-                let (name, price) = raw.split_at(split_index);
-                (price, name)
-            }
-        };
+    let (price, name) = match price_first {
+        None => return Err(AppError::Any {
+            text: "В строке должны быть указаны продукт и цена",
+        }.into()),
+        Some(true) => raw.split_at(split_index),
+        Some(false) => {
+            let (name, price) = raw.split_at(split_index);
+            (price, name)
+        }
+    };
 
     if name.is_empty() {
-        return Err(
-            "В строке должны быть указаны продукт и цена"
-                .to_owned(),
-        );
+        return Err(AppError::Any {
+            text: "В строке должны быть указаны продукт и цена",
+        }.into());
     }
 
     Ok((price, name))

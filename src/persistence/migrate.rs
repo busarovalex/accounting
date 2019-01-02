@@ -1,3 +1,4 @@
+use failure::Error as FailureError;
 use serde_json::Value;
 use uuid::Uuid;
 
@@ -5,7 +6,7 @@ use std::fs::File;
 use std::io::{Read, Write};
 use std::path::PathBuf;
 
-use persistence::error::{Error, ErrorKind};
+use persistence::error::PersistenceError;
 
 #[derive(Debug)]
 pub enum Migration {
@@ -14,7 +15,7 @@ pub enum Migration {
     GenerateUid(String),
 }
 
-pub fn migrate(table_file_path: PathBuf, migration: Migration) -> Result<(), Error> {
+pub fn migrate(table_file_path: PathBuf, migration: Migration) -> Result<(), FailureError> {
     info!(
         "migrating table {:?} with migration: {:?}",
         &table_file_path, &migration
@@ -25,7 +26,10 @@ pub fn migrate(table_file_path: PathBuf, migration: Migration) -> Result<(), Err
     Ok(())
 }
 
-fn migrate_to_string(table_file_path: PathBuf, migration: Migration) -> Result<String, Error> {
+fn migrate_to_string(
+    table_file_path: PathBuf,
+    migration: Migration,
+) -> Result<String, FailureError> {
     let mut table_file = File::open(&table_file_path)?;
     let mut content = String::with_capacity(2048);
     table_file.read_to_string(&mut content)?;
@@ -48,7 +52,7 @@ impl Migration {
         Migration::RemoveField(field_name)
     }
 
-    pub fn add_from_str(field_name: String, value: &str) -> Result<Migration, Error> {
+    pub fn add_from_str(field_name: String, value: &str) -> Result<Migration, FailureError> {
         let value: Value = ::serde_json::from_str(value)?;
         Ok(Migration::AddField(field_name, value))
     }
@@ -57,12 +61,12 @@ impl Migration {
         Migration::GenerateUid(field_name)
     }
 
-    fn apply(&self, value: Value) -> Result<Value, Error> {
+    fn apply(&self, value: Value) -> Result<Value, FailureError> {
         let migrated = match value {
             Value::Object(mut key_value_map) => match self {
                 &Migration::RemoveField(ref field_name) => {
                     if !key_value_map.remove(field_name).is_some() {
-                        return Err(ErrorKind::NoSuchKeyInJsonValue.into());
+                        return Err(PersistenceError::NoSuchKeyInJsonValue.into());
                     }
                     Value::Object(key_value_map)
                 }
@@ -71,7 +75,7 @@ impl Migration {
                         .insert(field_name.clone(), field_value.clone())
                         .is_some()
                     {
-                        return Err(ErrorKind::KeyWasAlreadyInObject.into());
+                        return Err(PersistenceError::KeyWasAlreadyInObject.into());
                     }
                     Value::Object(key_value_map)
                 }
@@ -81,14 +85,14 @@ impl Migration {
                         .insert(field_name.clone(), Value::String(uid))
                         .is_some()
                     {
-                        return Err(ErrorKind::KeyWasAlreadyInObject.into());
+                        return Err(PersistenceError::KeyWasAlreadyInObject.into());
                     }
                     Value::Object(key_value_map)
                 }
             },
             _ => {
                 error!("json value {:?} is not an object", &value);
-                return Err(ErrorKind::JsonValueIsNotObject.into());
+                return Err(PersistenceError::JsonValueIsNotObject.into());
             }
         };
 

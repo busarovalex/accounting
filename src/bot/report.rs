@@ -1,4 +1,5 @@
 use chrono::prelude::*;
+use failure::Error as FailureError;
 
 use std::str::FromStr;
 
@@ -6,7 +7,7 @@ use accounting::statistics::{Statistics, TimePeriod};
 use accounting::UserId;
 use bot::email::EmailSender;
 use config::Config;
-use error::{Error, ErrorKind};
+use error::AppError;
 use registry::Registry;
 
 pub fn report<'a, I>(
@@ -14,7 +15,7 @@ pub fn report<'a, I>(
     config: &Config,
     registry: &Registry,
     user: UserId,
-) -> Result<String, Error>
+) -> Result<String, FailureError>
 where
     I: Iterator<Item = &'a str>,
 {
@@ -39,11 +40,11 @@ struct ReportFactory<'r> {
 }
 
 impl<'r> ReportFactory<'r> {
-    fn print_week_report(&self) -> Result<String, Error> {
+    fn print_week_report(&self) -> Result<String, FailureError> {
         self.print_report(TimePeriod::ThisWeek)
     }
 
-    fn try_print_report(&self, time_period: &str) -> Result<String, Error> {
+    fn try_print_report(&self, time_period: &str) -> Result<String, FailureError> {
         let time_period = parse_time_period(time_period)?;
         self.print_report(time_period)
     }
@@ -53,7 +54,7 @@ impl<'r> ReportFactory<'r> {
         config: &Config,
         time_period: &str,
         email: &str,
-    ) -> Result<String, Error> {
+    ) -> Result<String, FailureError> {
         let sender = EmailSender::from_config(config)?;
         let time_period = parse_time_period(time_period)?;
         let statistics = self.statistics()?;
@@ -71,7 +72,7 @@ impl<'r> ReportFactory<'r> {
         }
     }
 
-    fn print_report(&self, time_period: TimePeriod) -> Result<String, Error> {
+    fn print_report(&self, time_period: TimePeriod) -> Result<String, FailureError> {
         let statistics = self.statistics()?;
         let report = statistics.report(time_period)?;
         match report {
@@ -83,14 +84,14 @@ impl<'r> ReportFactory<'r> {
         }
     }
 
-    fn statistics(&self) -> Result<Statistics, Error> {
+    fn statistics(&self) -> Result<Statistics, FailureError> {
         let entries = self.registry.list(self.user.clone())?;
         let categories = self.registry.categories(self.user.clone())?;
         Ok(Statistics::new(entries, categories))
     }
 }
 
-fn parse_time_period(time_period: &str) -> Result<TimePeriod, Error> {
+fn parse_time_period(time_period: &str) -> Result<TimePeriod, FailureError> {
     let now = ::chrono::offset::Local::now().naive_local().date();
     match time_period {
         "январь" => Ok(month(now, 1)),
@@ -109,11 +110,11 @@ fn parse_time_period(time_period: &str) -> Result<TimePeriod, Error> {
     }
 }
 
-fn parse_year(time_period: &str) -> Result<TimePeriod, Error> {
+fn parse_year(time_period: &str) -> Result<TimePeriod, FailureError> {
     let year = i32::from_str(time_period)?;
-    let invalid_date: Error = ErrorKind::InvalidDate.into();
+    let invalid_date: FailureError = AppError::InvalidDate.into();
     let start_of_year = NaiveDate::from_ymd_opt(year, 1, 1).ok_or(invalid_date)?;
-    let invalid_date: Error = ErrorKind::InvalidDate.into();
+    let invalid_date: FailureError = AppError::InvalidDate.into();
     let end_of_year =
         ::dates::last_day_of_month(NaiveDate::from_ymd_opt(year, 12, 1).ok_or(invalid_date)?);
     Ok(TimePeriod::Any(start_of_year, end_of_year))
@@ -131,6 +132,8 @@ fn end_of(now: NaiveDate, month: u32) -> NaiveDate {
     ::dates::last_day_of_month(start_of(now, month))
 }
 
-fn wrong_bot_usage() -> Error {
-    ErrorKind::BotUsage("ожидается два аргумента".to_owned()).into()
+fn wrong_bot_usage() -> FailureError {
+    AppError::BotUsage {
+        reason: "ожидается два аргумента".to_owned(),
+    }.into()
 }

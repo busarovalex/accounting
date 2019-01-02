@@ -1,11 +1,12 @@
+use failure::Error as FailureError;
+
 use std::str::FromStr;
 
 mod app;
 
 use self::app::*;
 use accounting::{Entry, Product, TelegramId};
-use error::Error as AppError;
-use error::ErrorKind;
+use error::AppError;
 use registry::Registry;
 
 pub fn start() {
@@ -29,7 +30,7 @@ pub fn start() {
     };
 }
 
-fn start_cli(app: App) -> Result<(), AppError> {
+fn start_cli(app: App) -> Result<(), FailureError> {
     let config = crate::config::config(&app.config_path)?;
     let config_without_passwords = crate::config::Config {
         email_smtp_credential_password: None,
@@ -90,7 +91,7 @@ fn start_cli(app: App) -> Result<(), AppError> {
         Command::Report(time_period, html) => {
             let user = registry.find_or_create(TelegramId(config.telegram_user_id))?;
             let stats = registry.statistics(user.id)?;
-            let err: AppError = ErrorKind::NoDataForPeriod.into();
+            let err: FailureError = AppError::NoDataForPeriod.into();
             let report = stats.report(time_period)?.ok_or(err)?;
             if html {
                 println!(

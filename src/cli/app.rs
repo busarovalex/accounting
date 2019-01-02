@@ -1,11 +1,11 @@
 use clap;
 use clap::{Arg, ArgMatches, SubCommand};
+use failure::Error as FailureError;
 
 use std::path::PathBuf;
 use std::str::FromStr;
 
 use accounting::statistics::TimePeriod;
-use error::Error;
 
 #[derive(Debug)]
 pub struct App {
@@ -49,7 +49,7 @@ pub enum CategoryCmd {
 }
 
 impl App {
-    pub fn from_args() -> Result<App, Error> {
+    pub fn from_args() -> Result<App, FailureError> {
         let matches = clap::App::new("Personal accounting")
             .about("Does personal accounting")
             .arg(
@@ -170,7 +170,7 @@ impl App {
                             .long("period")
                             .help("selects a time period")
                             .takes_value(true)
-                            .possible_values(&["day", "week", "month", "year"]),
+                            .default_value("month"),
                     ).arg(
                         Arg::with_name("html")
                             .short("h")
@@ -204,7 +204,7 @@ impl App {
     }
 }
 
-fn report(matches: &ArgMatches) -> Result<TimePeriod, Error> {
+fn report(matches: &ArgMatches) -> Result<TimePeriod, FailureError> {
     TimePeriod::from_str(matches.value_of("time_period").unwrap_or("month"))
 }
 
@@ -233,7 +233,7 @@ fn migrate(matches: &ArgMatches) -> MigrateCmd {
     }
 }
 
-fn user(matches: &ArgMatches) -> Result<UserCmd, Error> {
+fn user(matches: &ArgMatches) -> Result<UserCmd, FailureError> {
     if let Some(telegram_id) = matches.value_of("add") {
         Ok(UserCmd::Add(i64::from_str(telegram_id)?))
     } else if matches.is_present("list") {

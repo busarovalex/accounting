@@ -1,4 +1,5 @@
 use chrono::prelude::*;
+use failure::Error as FailureError;
 use futures::Stream;
 use telegram_bot::*;
 use tokio_core::reactor::Core;
@@ -8,8 +9,7 @@ use std::env;
 use self::app::App;
 use accounting::TelegramId;
 use config::Config;
-use error::Error as AppError;
-use error::ErrorKind;
+use error::AppError;
 use registry::Registry;
 
 mod app;
@@ -39,7 +39,7 @@ pub fn start() {
     };
 }
 
-fn start_bot(app: App) -> Result<(), AppError> {
+fn start_bot(app: App) -> Result<(), FailureError> {
     let config = crate::config::config(&app.config_path)?;
     let config_without_passwords = crate::config::Config {
         email_smtp_credential_password: None,
@@ -72,7 +72,7 @@ impl BotLauncher {
         }
     }
 
-    pub fn start(&mut self) -> Result<(), AppError> {
+    pub fn start(&mut self) -> Result<(), FailureError> {
         loop {
             let now = ::chrono::offset::Local::now().naive_local();
 
@@ -84,7 +84,7 @@ impl BotLauncher {
             self.number_of_tries += 1;
 
             if self.number_of_tries == self.max_number_of_tries {
-                return Err(ErrorKind::NumberOfLauchesExeeded.into());
+                return Err(AppError::NumberOfLauchesExeeded.into());
             }
 
             match self.run() {
@@ -96,13 +96,13 @@ impl BotLauncher {
         }
     }
 
-    fn run(&self) -> Result<(), AppError> {
-        let mut core = Core::new().map_err(|e| format!("{:?}", e))?;
+    fn run(&self) -> Result<(), FailureError> {
+        let mut core = Core::new()?;
 
-        let token = env::var("TELEGRAM_BOT_TOKEN").map_err(|e| format!("{:?}", e))?;
+        let token = env::var("TELEGRAM_BOT_TOKEN")?;
         let api = Api::configure(token)
             .build(core.handle())
-            .map_err(|e| format!("{:?}", e))?;
+            .map_err(|e| format_err!("{}", e))?;
 
         let future = api.stream().for_each(|update| {
             if let UpdateKind::Message(message) = update.kind {
@@ -133,7 +133,7 @@ impl BotLauncher {
             Ok(())
         });
 
-        core.run(future).map_err(|e| format!("{:?}", e))?;
+        core.run(future).map_err(|e| format_err!("{}", e))?;
 
         Ok(())
     }

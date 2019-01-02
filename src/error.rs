@@ -1,63 +1,36 @@
-use serde_yaml;
-
-use std::io;
-use std::num::ParseIntError;
 use std::path::PathBuf;
 
-use lettre::smtp::error::Error as SmtpError;
-use lettre_email::error::Error as EmailError;
-use persistence;
-
-error_chain!{
-    foreign_links {
-        Io(io::Error) #[doc = "Error during IO"];
-        Persistence(persistence::error::Error) #[doc = "Error during persistence"];
-        Yaml(serde_yaml::Error) #[doc = "Error during yamd (de)serialization"];
-        ParseIntError(ParseIntError) #[doc = "Error during parsing"];
-        Email(EmailError) #[doc = "Error during sending email"];
-        Smtp(SmtpError) #[doc = "Error during smtp"];
-    }
-
-    errors {
-        NotImplementedYet {
-            description("Not implemented yet")
-            display("Эта функция пока не реализована")
-        }
-        InvalidRegistryPath(used_path: PathBuf) {
-            description("An error occurred during registry work")
-            display("data path {:?} is not a directory", used_path)
-        }
-        NumberOfLauchesExeeded {
-            description("could not start bot after number of launches")
-            display("could not start bot after number of launches")
-        }
-        ProductAlreadyHasCategory(product: String, category: String) {
-            description("product already has a category")
-            display("product \"{}\" already has a category:\"{}\"", product, category)
-        }
-        Calculation(reason: String) {
-            description("error during calculation")
-            display("Error during calculation: {}", reason)
-        }
-        InvalidEnumVariant {
-            description("invalid enum variant")
-            display("invalid enum variant was provided")
-        }
-        NoDataForPeriod {
-            description("no data for report in this period")
-            display("no data for report in this period")
-        }
-        InvalidDate {
-            description("invalid date provided")
-            display("invalid date provided")
-        }
-        EmailNotSetUp(property: String) {
-            description("email sending is not set up")
-            display("email sending is not set up: add \"{}\" property in config", property)
-        }
-        BotUsage(reason: String){
-            description("wrong bot usage")
-            display("Неверное использование бота: {}", reason)
-        }
-    }
+#[derive(Debug, Fail)]
+pub enum AppError {
+    #[fail(display = "Actix error: {}", code)]
+    ActixError { code: i32 },
+    #[fail(display = "Not implemented yet")]
+    NotImplementedYet,
+    #[fail(display = "{}", text)]
+    Any { text: &'static str },
+    #[fail(display = "data path {:?} is not a directory", used_path)]
+    InvalidRegistryPath { used_path: PathBuf },
+    #[fail(display = "could not start bot after number of launches")]
+    NumberOfLauchesExeeded,
+    #[fail(
+        display = "product \"{}\" already has a category:\"{}\"",
+        product,
+        category
+    )]
+    ProductAlreadyHasCategory { product: String, category: String },
+    #[fail(display = "Error during calculation: {}", reason)]
+    Calculation { reason: String },
+    #[fail(display = "invalid enum variant was provided")]
+    InvalidEnumVariant,
+    #[fail(display = "no data for report in this period")]
+    NoDataForPeriod,
+    #[fail(display = "invalid date provided")]
+    InvalidDate,
+    #[fail(
+        display = "email sending is not set up: add \"{}\" property in config",
+        property
+    )]
+    EmailNotSetUp { property: String },
+    #[fail(display = "wrong bot usage: {}", reason)]
+    BotUsage { reason: String },
 }

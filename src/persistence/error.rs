@@ -1,38 +1,15 @@
-use serde_json;
-
-use std::io;
 use std::path::PathBuf;
 
-error_chain!{
-    foreign_links {
-        Io(io::Error) #[doc = "Error during IO"];
-        SerDe(serde_json::Error) #[doc = "Error during (de)serialization"];
-    }
-
-    errors {
-        AlreadyInUse(used_path: PathBuf) {
-            description("An error occurred during persistense")
-            display("Path {:?} is already used for another table", used_path)
-        }
-
-        IoError {
-            description("An IO error occurred during persistense")
-            display("An IO error occurred during persistense")
-        }
-
-        JsonValueIsNotObject {
-            description("An IO error occurred during persistense")
-            display("deserialized json value appears to be not an object")
-        }
-
-        NoSuchKeyInJsonValue {
-            description("An IO error occurred during persistense")
-            display("no such key found in json object")
-        }
-
-        KeyWasAlreadyInObject {
-            description("An IO error occurred during persistense")
-            display("key was already found in json object")
-        }
-    }
+#[derive(Debug, Fail)]
+pub enum PersistenceError {
+    #[fail(display = "Path {:?} already in use", used_path)]
+    AlreadyInUse { used_path: PathBuf },
+    #[fail(display = "io error")]
+    IoError,
+    #[fail(display = "Json value is not object")]
+    JsonValueIsNotObject,
+    #[fail(display = "No such key in json value")]
+    NoSuchKeyInJsonValue,
+    #[fail(display = "Key was already in object")]
+    KeyWasAlreadyInObject,
 }

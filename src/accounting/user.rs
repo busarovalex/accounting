@@ -1,16 +1,18 @@
 use chrono::naive::NaiveDateTime;
-use uuid::Uuid;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct UserId(pub String);
+use super::UserId;
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub struct TelegramId(pub i64);
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct AndroidAuth(pub String);
 
 #[derive(Debug, Clone)]
 pub struct User {
     pub id: UserId,
     pub telegram_id: Option<TelegramId>,
+    pub android_auth_token: Option<AndroidAuth>,
     pub offset: Option<NaiveDateTime>,
 }
 
@@ -20,16 +22,7 @@ impl User {
             id: UserId::generate(),
             telegram_id: Some(telegram_id),
             offset: None,
+            android_auth_token: None,
         }
-    }
-}
-
-impl UserId {
-    pub fn new(value: String) -> UserId {
-        UserId(value)
-    }
-
-    fn generate() -> UserId {
-        UserId(format!("{}", Uuid::new_v4()))
     }
 }

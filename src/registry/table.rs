@@ -1,7 +1,7 @@
 use chrono::prelude::*;
 
 use accounting::{
-    Category, CategoryId, Entry, EntryId, Product, Tag, Tags, TelegramId, User, UserId,
+    AndroidAuth, Category, CategoryId, Entry, EntryId, Product, Tag, Tags, TelegramId, User, UserId,
 };
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -27,6 +27,7 @@ pub struct RawUser {
     id: String,
     telegram_id: Option<i64>,
     offset: Option<NaiveDateTime>,
+    android_auth_token: Option<AndroidAuth>,
 }
 
 impl Into<User> for RawUser {
@@ -35,6 +36,7 @@ impl Into<User> for RawUser {
             id: UserId::new(self.id),
             telegram_id: self.telegram_id.map(|val| TelegramId(val)),
             offset: self.offset,
+            android_auth_token: self.android_auth_token,
         }
     }
 }
@@ -45,6 +47,7 @@ impl From<User> for RawUser {
             id: user.id.0,
             telegram_id: user.telegram_id.map(|id| id.0),
             offset: user.offset,
+            android_auth_token: user.android_auth_token,
         }
     }
 }

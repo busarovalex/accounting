@@ -1,9 +1,10 @@
+use failure::Error as FailureError;
+
 use std::str::FromStr;
 
 use accounting::UserId;
 use accounting::{Entry, Product};
 use config::Config;
-use error::Error;
 use registry::Registry;
 
 pub fn handle(
@@ -11,7 +12,7 @@ pub fn handle(
     config: &Config,
     registry: &Registry,
     user: UserId,
-) -> Result<String, Error> {
+) -> Result<String, FailureError> {
     let mut words = data.split_whitespace();
     if let Some(command) = words.next() {
         match command {
@@ -37,7 +38,7 @@ fn help() -> String {
     format!("/help\n/отчет")
 }
 
-fn added_entry(registry: &Registry, entry: &Entry) -> Result<String, Error> {
+fn added_entry(registry: &Registry, entry: &Entry) -> Result<String, FailureError> {
     let categories = registry.categories(entry.user_id.clone())?;
     if let Some(category) = categories.iter().find(|c| c.product == entry.product.name) {
         Ok(format!(
